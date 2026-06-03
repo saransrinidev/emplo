@@ -7,7 +7,7 @@ from app.models.enums import CertificationCategory, VerificationStatus
 
 
 class CertificationCreate(BaseModel):
-    employee_id: uuid.UUID
+    employee_id: uuid.UUID | None = None  # If omitted, defaults to current user's employee
     certificate_name: str
     certificate_number: str | None = None
     category: CertificationCategory = CertificationCategory.other

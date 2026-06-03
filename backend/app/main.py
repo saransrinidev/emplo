@@ -15,6 +15,7 @@ from app.api import (
     permissions,
     profile,
     salary,
+    upload,
 )
 from app.db.session import get_db
 
@@ -58,3 +59,4 @@ app.include_router(dashboard.router)
 app.include_router(notifications.router)
 app.include_router(permissions.router)
 app.include_router(audit.router)
+app.include_router(upload.router)

@@ -26,7 +26,6 @@ export default function Documents() {
       />
       {showForm && user && (
         <UploadDocumentForm
-          employeeId={user.id}
           onSuccess={() => {
             setShowForm(false);
             setRefreshKey((k) => k + 1);
@@ -77,7 +76,7 @@ function UploadDocumentForm({
   employeeId,
   onSuccess,
 }: {
-  employeeId: string;
+  employeeId?: string;
   onSuccess: () => void;
 }) {
   const [documentName, setDocumentName] = useState("");
@@ -96,7 +95,7 @@ function UploadDocumentForm({
     setFormError("");
     try {
       await documentsApi.create({
-        employee_id: employeeId,
+        ...(employeeId ? { employee_id: employeeId } : {}),
         document_name: documentName,
         document_type: documentType,
         file_url: fileUrl,

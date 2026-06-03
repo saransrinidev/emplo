@@ -7,7 +7,7 @@ from app.models.enums import DocumentType, VerificationStatus
 
 
 class DocumentCreate(BaseModel):
-    employee_id: uuid.UUID
+    employee_id: uuid.UUID | None = None  # If omitted, defaults to current user's employee
     document_name: str | None = None
     document_type: DocumentType
     file_url: str

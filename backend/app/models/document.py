@@ -25,7 +25,7 @@ class Document(Base, UUIDMixin, TimestampMixin):
     document_type: Mapped[DocumentType] = mapped_column(
         SAEnum(DocumentType, name="document_type"), nullable=False
     )
-    file_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    file_url: Mapped[str] = mapped_column(String, nullable=False)  # TEXT for base64 data URLs
     status: Mapped[VerificationStatus] = mapped_column(
         SAEnum(VerificationStatus, name="document_status"),
         default=VerificationStatus.uploaded,

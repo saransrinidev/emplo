@@ -29,7 +29,7 @@ class Certification(Base, UUIDMixin, TimestampMixin):
     )
     issued_date: Mapped[date | None] = mapped_column(Date)
     expiry_date: Mapped[date | None] = mapped_column(Date)  # nullable: "if applicable"
-    file_url: Mapped[str | None] = mapped_column(String(1000))
+    file_url: Mapped[str | None] = mapped_column(String)  # TEXT, no length limit (stores base64 data URLs)
     verification_status: Mapped[VerificationStatus] = mapped_column(
         SAEnum(VerificationStatus, name="certification_status"),
         default=VerificationStatus.uploaded,

@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
+    supabase_service_key: str = ""
 
     @property
     def sqlalchemy_connect_args(self) -> dict:

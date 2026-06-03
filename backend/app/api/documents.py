@@ -36,9 +36,13 @@ def upload_document(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Document:
-    if user.role.name == RoleName.employee and user.employee_id != payload.employee_id:
+    target_employee_id = payload.employee_id or user.employee_id
+    if target_employee_id is None:
+        raise HTTPException(status_code=400, detail="No employee record linked to this account")
+    if user.role.name == RoleName.employee and user.employee_id != target_employee_id:
         raise HTTPException(status_code=403, detail="Cannot upload for another employee")
-    doc = Document(**payload.model_dump())
+    data = payload.model_dump(exclude={"employee_id"})
+    doc = Document(employee_id=target_employee_id, **data)
     db.add(doc)
     db.commit()
     db.refresh(doc)

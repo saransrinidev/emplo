@@ -89,7 +89,7 @@ export const documentsApi = {
   verify: (docId: string, status: VerificationStatus) =>
     api.put<DocumentItem>(`/documents/${docId}/verify`, { status }),
   create: (data: {
-    employee_id: string;
+    employee_id?: string;
     document_name: string;
     document_type: string;
     file_url: string;
@@ -102,7 +102,7 @@ export const certificationsApi = {
       `/certifications${employeeId ? `?employee_id=${employeeId}` : ""}`,
     ),
   create: (data: {
-    employee_id: string;
+    employee_id?: string;
     certificate_name: string;
     certificate_number?: string;
     category?: string;
@@ -110,6 +110,8 @@ export const certificationsApi = {
     expiry_date?: string;
     file_url?: string;
   }) => api.post<Certification>("/certifications", data),
+  verify: (certId: string, verification_status: VerificationStatus) =>
+    api.put<Certification>(`/certifications/${certId}`, { verification_status }),
 };
 
 export const salaryApi = {

@@ -13,6 +13,7 @@ import {
 } from "../api/features";
 import { useAuth } from "../auth/AuthContext";
 import AsyncState from "../components/AsyncState";
+import ImageModal from "../components/ImageModal";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import { useApi } from "../hooks/useApi";
@@ -220,6 +221,13 @@ function CertsTab({ empId, isHr }: { empId: string; isHr: boolean }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const { data, loading, error } = useApi(() => certificationsApi.list(empId), [empId, refreshKey]);
   const [showForm, setShowForm] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
+
+  const handleVerify = async (certId: string, status: "verified" | "rejected") => {
+    await certificationsApi.verify(certId, status);
+    setRefreshKey((k) => k + 1);
+  };
 
   return (
     <AsyncState loading={loading} error={error}>
@@ -235,22 +243,50 @@ function CertsTab({ empId, isHr }: { empId: string; isHr: boolean }) {
       )}
       <div className="card" style={{ padding: 0 }}>
         <table className="table">
-          <thead><tr><th>Certificate</th><th>Number</th><th>Issued</th><th>Expiry</th><th>Status</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Certificate</th>
+              <th>Number</th>
+              <th>Issued</th>
+              <th>Expiry</th>
+              <th>File</th>
+              <th>Status</th>
+              {isHr && <th>Actions</th>}
+            </tr>
+          </thead>
           <tbody>
             {(data ?? []).length === 0 ? (
-              <tr><td colSpan={5} className="muted" style={{ textAlign: "center" }}>No certifications.</td></tr>
+              <tr><td colSpan={isHr ? 7 : 6} className="muted" style={{ textAlign: "center" }}>No certifications.</td></tr>
             ) : (data ?? []).map((c) => (
               <tr key={c.id}>
                 <td>{c.certificate_name}</td>
                 <td className="muted">{c.certificate_number ?? "—"}</td>
                 <td className="muted">{c.issued_date ?? "—"}</td>
                 <td className="muted">{c.expiry_date ?? "—"}</td>
+                <td>
+                  {c.file_url ? (
+                    <button className="btn btn-outline btn-sm" onClick={() => { setPreviewUrl(c.file_url); setPreviewTitle(c.certificate_name); }}>View</button>
+                  ) : <span className="muted">—</span>}
+                </td>
                 <td><StatusBadge status={c.verification_status} /></td>
+                {isHr && (
+                  <td>
+                    {c.verification_status === "uploaded" && (
+                      <>
+                        <button className="btn btn-sm" style={{ marginRight: 4 }} onClick={() => handleVerify(c.id, "verified")}>Verify</button>
+                        <button className="btn btn-outline btn-sm" onClick={() => handleVerify(c.id, "rejected")}>Reject</button>
+                      </>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {previewUrl && (
+        <ImageModal url={previewUrl} title={previewTitle} onClose={() => setPreviewUrl(null)} />
+      )}
     </AsyncState>
   );
 }

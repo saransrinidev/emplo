@@ -54,10 +54,15 @@ def add_certification(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Certification:
+    # Resolve employee_id: default to current user's linked employee if not provided.
+    target_employee_id = payload.employee_id or user.employee_id
+    if target_employee_id is None:
+        raise HTTPException(status_code=400, detail="No employee record linked to this account")
     # Employees can add their own; HR can add for anyone.
-    if user.role.name == RoleName.employee and user.employee_id != payload.employee_id:
+    if user.role.name == RoleName.employee and user.employee_id != target_employee_id:
         raise HTTPException(status_code=403, detail="Cannot add for another employee")
-    cert = Certification(**payload.model_dump())
+    data = payload.model_dump(exclude={"employee_id"})
+    cert = Certification(employee_id=target_employee_id, **data)
     db.add(cert)
     db.commit()
     db.refresh(cert)
