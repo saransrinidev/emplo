@@ -3,8 +3,14 @@ import { useAuth } from "../auth/AuthContext";
 import type { ReactNode } from "react";
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+
+  // Wait for the startup /auth/me check before deciding where to send the user,
+  // so a page refresh doesn't bounce a logged-in user to the login screen.
+  if (loading) {
+    return <div className="login-wrap muted">Loading…</div>;
+  }
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
