@@ -9,6 +9,7 @@ import EmployeeDetail from "./pages/EmployeeDetail";
 import Employees from "./pages/Employees";
 import Login from "./pages/Login";
 import Notifications from "./pages/Notifications";
+import OrgChart from "./pages/OrgChart";
 import Performance from "./pages/Performance";
 import Profile from "./pages/Profile";
 import Salary from "./pages/Salary";
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/performance" element={<Performance />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/audit-logs" element={<AuditLogs />} />
+        <Route path="/org-chart" element={<OrgChart />} />
         <Route path="/employees" element={<Employees />} />
         <Route path="/employees/:id" element={<EmployeeDetail />} />
       </Route>

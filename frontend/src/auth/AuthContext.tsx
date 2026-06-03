@@ -27,6 +27,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 
 const ACCESS_KEY = "access_token";
 const REFRESH_KEY = "refresh_token";
+const USER_KEY = "cached_user";
 
 // Derive a friendly display name from the email local-part.
 function nameFromEmail(email: string): string {
@@ -47,13 +48,32 @@ function storeTokens(tokens: TokenResponse) {
 function clearTokens() {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+function getCachedUser(): SessionUser | null {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SessionUser;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedUser(user: SessionUser) {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<SessionUser | null>(getCachedUser);
+  const [loading, setLoading] = useState(() => {
+    // If we have a cached user, no need to show loading state
+    return !getCachedUser() && !!localStorage.getItem(ACCESS_KEY);
+  });
 
-  // On startup, if we have a token, restore the session from /auth/me.
+  // On startup, if we have a token, validate session in background.
+  // If we have cached user, render immediately and revalidate silently.
   useEffect(() => {
     const token = localStorage.getItem(ACCESS_KEY);
     if (!token) {
@@ -62,15 +82,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     authApi
       .me()
-      .then((me) =>
-        setUser({
+      .then((me) => {
+        const sessionUser: SessionUser = {
           id: me.id,
           email: me.email,
           role: me.role,
           name: nameFromEmail(me.email),
-        }),
-      )
-      .catch(() => clearTokens())
+        };
+        setUser(sessionUser);
+        setCachedUser(sessionUser);
+      })
+      .catch(() => {
+        clearTokens();
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -78,12 +103,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const tokens = await authApi.login(email, password);
     storeTokens(tokens);
     const me = await authApi.me();
-    setUser({
+    const sessionUser: SessionUser = {
       id: me.id,
       email: me.email,
       role: me.role,
       name: nameFromEmail(me.email),
-    });
+    };
+    setUser(sessionUser);
+    setCachedUser(sessionUser);
   };
 
   const logout = () => {
