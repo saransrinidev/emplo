@@ -1,6 +1,6 @@
-# HR Portal - Backend
+# Emplo - Backend
 
-FastAPI + SQLAlchemy backend for the Employee & HR Portal, backed by Supabase Postgres.
+FastAPI + SQLAlchemy backend for Emplo, backed by Supabase Postgres.
 
 ## Stack
 

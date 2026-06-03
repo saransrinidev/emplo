@@ -66,6 +66,20 @@ def add_certification(
     db.add(cert)
     db.commit()
     db.refresh(cert)
+
+    # Notify HR and manager when employee/manager adds a certification
+    if user.role.name != RoleName.hr_admin:
+        from app.api.notify import notify_hr_and_manager
+        from app.models.employee import Employee
+        emp = db.get(Employee, target_employee_id)
+        emp_name = emp.full_name if emp else "An employee"
+        notify_hr_and_manager(
+            db, user,
+            title="Certification Added",
+            message=f"{emp_name} added a certification: {cert.certificate_name}",
+        )
+        db.commit()
+
     return cert
 
 

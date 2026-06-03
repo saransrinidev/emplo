@@ -88,3 +88,79 @@ def unread_count(
         .where(Notification.user_id == user.id, Notification.is_read == False)  # noqa: E712
     ) or 0
     return {"count": count}
+
+
+# --- Send alert/notification to a user (HR only) ---
+from app.api.deps import require_roles
+from app.models.enums import RoleName
+from app.models.employee import Employee
+
+
+class SendAlertRequest(BaseModel):
+    employee_id: str
+    title: str
+    message: str
+    notify_manager: bool = False
+
+
+class SendAlertResponse(BaseModel):
+    sent_to: list[str]
+
+
+@router.post("/send-alert", response_model=SendAlertResponse, status_code=201)
+def send_alert(
+    payload: SendAlertRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RoleName.hr_admin)),
+) -> SendAlertResponse:
+    """Send a notification to an employee and optionally their manager."""
+    emp_id = uuid.UUID(payload.employee_id)
+    employee = db.get(Employee, emp_id)
+    if employee is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    sent_to: list[str] = []
+
+    # Send to the employee's user account
+    emp_user = db.scalar(select(User).where(User.employee_id == emp_id))
+    if emp_user:
+        notif = Notification(
+            user_id=emp_user.id,
+            title=payload.title,
+            message=payload.message,
+        )
+        db.add(notif)
+        sent_to.append(employee.email)
+
+    # Send to the employee's manager if requested
+    if payload.notify_manager and employee.manager_id:
+        mgr_user = db.scalar(select(User).where(User.employee_id == employee.manager_id))
+        if mgr_user:
+            mgr_notif = Notification(
+                user_id=mgr_user.id,
+                title=payload.title,
+                message=f"[Re: {employee.full_name}] {payload.message}",
+            )
+            db.add(mgr_notif)
+            manager = db.get(Employee, employee.manager_id)
+            if manager:
+                sent_to.append(manager.email)
+
+    db.commit()
+    return SendAlertResponse(sent_to=sent_to)
+
+
+# --- Mark single notification as read ---
+
+@router.put("/{notification_id}/read", status_code=204)
+def mark_one_read(
+    notification_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    notif = db.get(Notification, notification_id)
+    if notif is None or notif.user_id != user.id:
+        return None
+    notif.is_read = True
+    db.commit()

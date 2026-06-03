@@ -24,6 +24,7 @@ import { useSidebar } from "../context/SidebarContext";
 interface NavItem {
   to: string;
   label: string;
+  
   icon: React.ReactNode;
   roles: Role[];
 }
@@ -45,25 +46,25 @@ const NAV_ITEMS: NavItem[] = [
     to: "/documents",
     label: "Documents",
     icon: <FileText />,
-    roles: ["employee", "manager", "hr_admin"],
+    roles: ["employee", "manager"],
   },
   {
     to: "/certifications",
     label: "Certifications",
     icon: <Award />,
-    roles: ["employee", "manager", "hr_admin"],
+    roles: ["employee", "manager"],
   },
   {
     to: "/salary",
     label: "Salary",
     icon: <DollarSign />,
-    roles: ["employee", "manager", "hr_admin"],
+    roles: ["employee", "manager"],
   },
   {
     to: "/performance",
     label: "Performance",
     icon: <TrendingUp />,
-    roles: ["employee", "manager", "hr_admin"],
+    roles: ["employee", "manager"],
   },
   {
     to: "/notifications",
@@ -129,7 +130,7 @@ export default function Sidebar() {
   return (
     <aside className={sidebarClasses}>
       <div className="sidebar-brand">
-        <span className="sidebar-brand-text">HR Portal</span>
+        <span className="sidebar-brand-text">Emplo</span>
         {/* Desktop: collapse toggle. Mobile: close button */}
         <button
           className="sidebar-toggle sidebar-toggle-desktop"

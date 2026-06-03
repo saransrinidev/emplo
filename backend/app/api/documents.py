@@ -46,6 +46,20 @@ def upload_document(
     db.add(doc)
     db.commit()
     db.refresh(doc)
+
+    # Notify HR and manager when employee/manager uploads a document
+    if user.role.name != RoleName.hr_admin:
+        from app.api.notify import notify_hr_and_manager
+        from app.models.employee import Employee
+        emp = db.get(Employee, target_employee_id)
+        emp_name = emp.full_name if emp else "An employee"
+        notify_hr_and_manager(
+            db, user,
+            title="Document Uploaded",
+            message=f"{emp_name} uploaded a document: {doc.document_name or doc.document_type}",
+        )
+        db.commit()
+
     return doc
 
 

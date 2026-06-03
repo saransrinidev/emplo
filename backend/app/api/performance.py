@@ -56,10 +56,37 @@ def list_reviews(
 def add_review(
     payload: PerformanceReviewCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(RoleName.hr_admin)),
+    user: User = Depends(require_roles(RoleName.hr_admin, RoleName.manager)),
 ) -> PerformanceReviewOut:
-    review = PerformanceReview(**payload.model_dump())
+    # Managers can only add reviews for their direct reports
+    if user.role.name == RoleName.manager and user.employee_id:
+        target = db.get(Employee, payload.employee_id)
+        if not target or target.manager_id != user.employee_id:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=403, detail="Can only review your direct reports")
+
+    # Set reviewer_id to the manager's employee_id if not provided
+    data = payload.model_dump()
+    if not data.get("reviewer_id") and user.employee_id:
+        data["reviewer_id"] = user.employee_id
+
+    review = PerformanceReview(**data)
     db.add(review)
     db.commit()
     db.refresh(review)
+
+    # Notify the employee about the new review
+    from app.api.notify import notify_hr_and_manager
+    emp = db.get(Employee, payload.employee_id)
+    if emp:
+        from app.api.notifications import Notification
+        emp_user = db.scalar(select(User).where(User.employee_id == emp.id))
+        if emp_user:
+            db.add(Notification(
+                user_id=emp_user.id,
+                title="Performance Review Added",
+                message=f"A new performance review for {data.get('review_period', 'this period')} has been submitted. Rating: {data.get('rating', 'N/A')}/5",
+            ))
+            db.commit()
+
     return _to_out(db, review)

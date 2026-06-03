@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { BellRing } from "lucide-react";
 import { employeesApi, type Employee } from "../api/employees";
 import {
   certificationsApi,
   documentsApi,
+  notificationsApi,
   performanceApi,
   permissionsApi,
   salaryApi,
@@ -11,6 +13,7 @@ import {
   type Permission,
   type VerificationStatus,
 } from "../api/features";
+import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import AsyncState from "../components/AsyncState";
 import ImageModal from "../components/ImageModal";
@@ -20,12 +23,18 @@ import { useApi } from "../hooks/useApi";
 
 type Tab = "profile" | "documents" | "certifications" | "salary" | "performance" | "permissions";
 
+// Tabs that send alerts to employee + manager
+const EMPLOYEE_ALERT_TABS: Tab[] = ["profile", "documents", "certifications"];
+// Tabs that send alerts only to manager
+const MANAGER_ALERT_TABS: Tab[] = ["salary", "performance", "permissions"];
+
 export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("profile");
   const isHr = user?.role === "hr_admin";
+  const [alertTab, setAlertTab] = useState<Tab | null>(null);
 
   const { data: emp, loading, error } = useApi(
     () => employeesApi.get(id!),
@@ -54,15 +63,38 @@ export default function EmployeeDetail() {
           <>
             <div className="tabs" style={{ marginBottom: 20 }}>
               {tabs.map((t) => (
-                <button
-                  key={t}
-                  className={`tab-btn ${tab === t ? "tab-btn-active" : ""}`}
-                  onClick={() => setTab(t)}
-                >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
+                <div key={t} style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                  <button
+                    className={`tab-btn ${tab === t ? "tab-btn-active" : ""}`}
+                    onClick={() => setTab(t)}
+                  >
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                  {isHr && (
+                    <button
+                      className="tab-alert-btn"
+                      title={`Send alert about ${t}`}
+                      onClick={() => setAlertTab(t)}
+                    >
+                      <BellRing size={14} />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
+
+            {/* Alert Modal */}
+            {alertTab && emp && (
+              <SendAlertModal
+                employeeId={id}
+                employeeName={emp.full_name}
+                tab={alertTab}
+                notifyManager={MANAGER_ALERT_TABS.includes(alertTab)}
+                notifyEmployee={EMPLOYEE_ALERT_TABS.includes(alertTab)}
+                onClose={() => setAlertTab(null)}
+              />
+            )}
+
             {tab === "profile" && <ProfileTab emp={emp} />}
             {tab === "documents" && <DocumentsTab empId={id} isHr={isHr} />}
             {tab === "certifications" && <CertsTab empId={id} isHr={isHr} />}
@@ -72,6 +104,114 @@ export default function EmployeeDetail() {
           </>
         )}
       </AsyncState>
+    </div>
+  );
+}
+
+// ------- Send Alert Modal -------
+function SendAlertModal({
+  employeeId,
+  employeeName,
+  tab,
+  notifyManager,
+  notifyEmployee,
+  onClose,
+}: {
+  employeeId: string;
+  employeeName: string;
+  tab: Tab;
+  notifyManager: boolean;
+  notifyEmployee: boolean;
+  onClose: () => void;
+}) {
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const tabLabel = tab.charAt(0).toUpperCase() + tab.slice(1);
+
+  // For profile/documents/certifications: send to employee + manager
+  // For salary/performance/permissions: send only to manager
+  const recipientDesc = notifyEmployee && notifyManager
+    ? `${employeeName} and their manager`
+    : notifyEmployee
+    ? employeeName
+    : `${employeeName}'s manager`;
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) {
+      setError("Please enter a message.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await notificationsApi.sendAlert({
+        employee_id: employeeId,
+        title: `${tabLabel} Alert`,
+        message: message.trim(),
+        notify_manager: notifyManager,
+      });
+      if (res.sent_to.length > 0) {
+        setSuccess(`Alert sent to: ${res.sent_to.join(", ")}`);
+      } else {
+        setSuccess("Alert created (no linked user accounts found to notify).");
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to send alert.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Send {tabLabel} Alert</h2>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
+            Send a notification about <strong style={{ color: "var(--text)" }}>{tabLabel.toLowerCase()}</strong> to <strong style={{ color: "var(--text)" }}>{recipientDesc}</strong>.
+            This will appear in their dashboard notifications.
+          </p>
+
+          {success ? (
+            <>
+              <div style={{ padding: 16, background: "var(--primary-light)", borderRadius: "var(--radius)", marginBottom: 16 }}>
+                <p style={{ color: "var(--text)", fontSize: 14 }}>✓ {success}</p>
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button className="btn btn-sm" onClick={onClose}>Done</button>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <div className="field">
+                <label>Message</label>
+                <textarea
+                  className="input"
+                  rows={4}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={`e.g. Please update your ${tab} details by end of week.`}
+                  style={{ resize: "vertical" }}
+                />
+              </div>
+              {error && <p className="error-text" style={{ marginBottom: 12 }}>{error}</p>}
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-sm" disabled={submitting}>
+                  {submitting ? "Sending…" : "Send Alert"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

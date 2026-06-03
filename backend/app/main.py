@@ -19,7 +19,7 @@ from app.api import (
 )
 from app.db.session import get_db
 
-app = FastAPI(title="Employee & HR Portal API", version="0.1.0")
+app = FastAPI(title="Emplo API", version="0.1.0")
 
 # Allow the Vite dev server to call the API during development.
 app.add_middleware(

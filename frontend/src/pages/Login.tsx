@@ -38,7 +38,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="card login-card" onSubmit={handleSubmit}>
-        <div className="login-brand">Employee & HR Portal</div>
+        <div className="login-brand">Emplo</div>
         <p className="muted login-sub">Sign in to continue</p>
 
         <div className="field">

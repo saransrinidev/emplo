@@ -14,16 +14,11 @@ import {
   Award,
   AlertTriangle,
   ArrowRight,
-  FileText,
   Bell,
   CheckCircle2,
   XCircle,
   Info,
-  UserPlus2,
-  FolderOpen,
-  BarChart3,
   ChevronRight,
-  User,
   CalendarClock,
   BellRing,
 } from "lucide-react";
@@ -36,6 +31,7 @@ import {
 } from "../api/features";
 import { useAuth } from "../auth/AuthContext";
 import AsyncState from "../components/AsyncState";
+import { StaggerContainer, StaggerItem, FadeIn, PageTransition } from "../components/Motion";
 import PageHeader from "../components/PageHeader";
 import { useApi } from "../hooks/useApi";
 
@@ -71,48 +67,6 @@ function money(value: string | null): string {
   return Number.isNaN(n) ? value : `₹${n.toLocaleString()}`;
 }
 
-/* Quick Link card (grid style) */
-interface QuickLinkProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-}
-
-function QuickLink({ to, icon, label, description }: QuickLinkProps) {
-  return (
-    <Link to={to} className="quick-link-card">
-      <div className="quick-link-icon">{icon}</div>
-      <div className="quick-link-text">
-        <div className="quick-link-label">{label}</div>
-        <div className="quick-link-desc">{description}</div>
-      </div>
-      <ChevronRight size={16} className="quick-link-arrow" />
-    </Link>
-  );
-}
-
-/* Quick action card (list style) */
-interface QuickActionProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-}
-
-function QuickAction({ to, icon, label, description }: QuickActionProps) {
-  return (
-    <Link to={to} className="quick-action">
-      <div className="quick-action-icon">{icon}</div>
-      <div className="quick-action-content">
-        <div className="quick-action-label">{label}</div>
-        <div className="quick-action-desc">{description}</div>
-      </div>
-      <ArrowRight size={16} className="quick-action-arrow" />
-    </Link>
-  );
-}
-
 /* Upcoming Reminders */
 function UpcomingReminders() {
   const [certs, setCerts] = useState<Certification[]>([]);
@@ -122,7 +76,6 @@ function UpcomingReminders() {
     certificationsApi
       .list()
       .then((data) => {
-        // Show certs with expiry dates, sorted by nearest
         const withExpiry = data
           .filter((c) => c.expiry_date)
           .sort(
@@ -259,8 +212,6 @@ function RecentNotifications() {
   );
 }
 
-/* Greeting based on time of day - currently unused but available */
-
 function todayFormatted(): string {
   return new Date().toLocaleDateString("en-US", {
     month: "short",
@@ -280,99 +231,64 @@ function EmployeeDashboard() {
     <AsyncState loading={loading} error={error}>
       {data && (
         <div className="dashboard-grid">
-          {/* Top stat cards row */}
-          <div className="grid grid-cards">
-            <Stat title="Designation" value={data.designation ?? "—"} icon={<Briefcase />} />
-            <Stat title="Date of Joining" value={data.date_of_joining ?? "—"} icon={<Calendar />} />
-            <Stat title="Current Salary" value={money(data.current_salary)} icon={<DollarSign />} />
-            <Stat
-              title="Latest Rating"
-              value={data.latest_rating ? `${data.latest_rating} / 5` : "—"}
-              icon={<Star />}
-            />
-          </div>
+          <StaggerContainer className="grid grid-cards">
+            <StaggerItem><Stat title="Designation" value={data.designation ?? "—"} icon={<Briefcase />} /></StaggerItem>
+            <StaggerItem><Stat title="Date of Joining" value={data.date_of_joining ?? "—"} icon={<Calendar />} /></StaggerItem>
+            <StaggerItem><Stat title="Current Salary" value={money(data.current_salary)} icon={<DollarSign />} /></StaggerItem>
+            <StaggerItem>
+              <Stat
+                title="Latest Rating"
+                value={data.latest_rating ? `${data.latest_rating} / 5` : "—"}
+                icon={<Star />}
+              />
+            </StaggerItem>
+          </StaggerContainer>
 
-          {/* Second row — clickable summary cards */}
-          <div className="grid grid-cards">
-            <Stat
-              title="Certifications"
-              value={String(data.certification_count)}
-              subtitle="Total"
-              icon={<Award />}
-              clickable
-              to="/certifications"
-            />
-            <Stat
-              title="Expiring Soon"
-              value={String(data.expiring_soon)}
-              subtitle="Needs Attention"
-              icon={<AlertTriangle />}
-              clickable
-              to="/certifications"
-            />
-          </div>
+          <StaggerContainer className="grid grid-cards" delay={0.3}>
+            <StaggerItem>
+              <Stat
+                title="Certifications"
+                value={String(data.certification_count)}
+                subtitle="Total"
+                icon={<Award />}
+                clickable
+                to="/certifications"
+              />
+            </StaggerItem>
+            <StaggerItem>
+              <Stat
+                title="Expiring Soon"
+                value={String(data.expiring_soon)}
+                subtitle="Needs Attention"
+                icon={<AlertTriangle />}
+                clickable
+                to="/certifications"
+              />
+            </StaggerItem>
+          </StaggerContainer>
 
-          {/* Two column: Reminders + Quick Links */}
-          <div className="dashboard-columns">
+          <FadeIn delay={0.5} className="dashboard-columns">
             <UpcomingReminders />
+            <RecentNotifications />
+          </FadeIn>
 
-            <div className="dashboard-panel">
-              <div className="panel-header">
-                <h3 className="panel-title">
-                  <Star size={18} />
-                  Quick Links
-                </h3>
+          <FadeIn delay={0.7}>
+            <div className="info-banner">
+              <div className="info-banner-icon">
+                <BellRing size={32} />
               </div>
-              <div className="panel-body">
-                <div className="quick-links-grid">
-                  <QuickLink
-                    to="/profile"
-                    icon={<User size={20} />}
-                    label="My Profile"
-                    description="View and update your profile"
-                  />
-                  <QuickLink
-                    to="/documents"
-                    icon={<FileText size={20} />}
-                    label="My Documents"
-                    description="Upload and manage documents"
-                  />
-                  <QuickLink
-                    to="/certifications"
-                    icon={<Award size={20} />}
-                    label="My Certifications"
-                    description="View your certifications"
-                  />
-                  <QuickLink
-                    to="/salary"
-                    icon={<DollarSign size={20} />}
-                    label="Salary Details"
-                    description="View salary and payslips"
-                  />
-                </div>
-                <Link to="/performance" className="panel-footer-link">
-                  Explore all features
-                </Link>
+              <div className="info-banner-content">
+                <h4>Stay Informed</h4>
+                <p>
+                  Enable notifications to stay updated on important announcements,
+                  policy changes, and deadlines.
+                </p>
               </div>
+              <Link to="/notifications" className="btn info-banner-btn">
+                Enable Notifications
+              </Link>
             </div>
-          </div>
-
-          {/* Stay Informed Banner */}
-          <div className="info-banner">
-            <div className="info-banner-icon">
-              <BellRing size={32} />
-            </div>
-            <div className="info-banner-content">
-              <h4>Stay Informed</h4>
-              <p>
-                Enable notifications to stay updated on important announcements,
-                policy changes, and deadlines.
-              </p>
-            </div>
-            <Link to="/notifications" className="btn info-banner-btn">
-              Enable Notifications
-            </Link>
-          </div>
+          </FadeIn>
         </div>
       )}
     </AsyncState>
@@ -390,47 +306,17 @@ function ManagerDashboard() {
     <AsyncState loading={loading} error={error}>
       {data && (
         <div className="dashboard-grid">
-          <div className="grid grid-cards">
-            <Stat title="Team Members" value={String(data.team_members)} icon={<Users />} />
-            <Stat title="Avg Team Rating" value={data.avg_team_rating ?? "—"} icon={<Star />} />
-            <Stat title="Cert Expiry Alerts" value={String(data.cert_expiry_alerts)} icon={<AlertTriangle />} />
-            <Stat title="Missing Documents" value={String(data.missing_documents)} icon={<FileWarning />} />
-          </div>
+          <StaggerContainer className="grid grid-cards">
+            <StaggerItem><Stat title="Team Members" value={String(data.team_members)} icon={<Users />} /></StaggerItem>
+            <StaggerItem><Stat title="Avg Team Rating" value={data.avg_team_rating ?? "—"} icon={<Star />} /></StaggerItem>
+            <StaggerItem><Stat title="Cert Expiry Alerts" value={String(data.cert_expiry_alerts)} icon={<AlertTriangle />} /></StaggerItem>
+            <StaggerItem><Stat title="Missing Documents" value={String(data.missing_documents)} icon={<FileWarning />} /></StaggerItem>
+          </StaggerContainer>
 
-          <div className="dashboard-columns">
-            <div className="dashboard-panel">
-              <div className="panel-header">
-                <h3 className="panel-title">Quick Actions</h3>
-              </div>
-              <div className="panel-body panel-actions">
-                <QuickAction
-                  to="/employees"
-                  icon={<Users size={20} />}
-                  label="View Team"
-                  description="See all team members"
-                />
-                <QuickAction
-                  to="/performance"
-                  icon={<BarChart3 size={20} />}
-                  label="Performance Reviews"
-                  description="Review team performance"
-                />
-                <QuickAction
-                  to="/documents"
-                  icon={<FolderOpen size={20} />}
-                  label="Documents"
-                  description="Check team documents"
-                />
-                <QuickAction
-                  to="/certifications"
-                  icon={<Award size={20} />}
-                  label="Certifications"
-                  description="Monitor cert expiries"
-                />
-              </div>
-            </div>
+          <FadeIn delay={0.4} className="dashboard-columns">
+            <UpcomingReminders />
             <RecentNotifications />
-          </div>
+          </FadeIn>
         </div>
       )}
     </AsyncState>
@@ -448,63 +334,21 @@ function HrDashboard() {
     <AsyncState loading={loading} error={error}>
       {data && (
         <div className="dashboard-grid">
-          <div className="grid grid-cards">
-            <Stat title="Total Employees" value={String(data.total_employees)} icon={<Users />} />
-            <Stat title="Active Employees" value={String(data.active_employees)} icon={<UserCheck />} />
-            <Stat title="New Joiners" value={String(data.new_joiners)} icon={<UserPlus />} />
-            <Stat title="Missing Documents" value={String(data.employees_missing_documents)} icon={<FileWarning />} />
-          </div>
-          <div className="grid grid-cards">
-            <Stat title="Expired Certifications" value={String(data.expired_certifications)} icon={<ShieldAlert />} />
-            <Stat title="Pending Verifications" value={String(data.pending_verifications)} icon={<Clock />} />
-          </div>
+          <StaggerContainer className="grid grid-cards">
+            <StaggerItem><Stat title="Total Employees" value={String(data.total_employees)} icon={<Users />} /></StaggerItem>
+            <StaggerItem><Stat title="Active Employees" value={String(data.active_employees)} icon={<UserCheck />} /></StaggerItem>
+            <StaggerItem><Stat title="New Joiners" value={String(data.new_joiners)} icon={<UserPlus />} /></StaggerItem>
+            <StaggerItem><Stat title="Missing Documents" value={String(data.employees_missing_documents)} icon={<FileWarning />} /></StaggerItem>
+          </StaggerContainer>
 
-          <div className="dashboard-columns">
-            <div className="dashboard-panel">
-              <div className="panel-header">
-                <h3 className="panel-title">Quick Actions</h3>
-              </div>
-              <div className="panel-body panel-actions">
-                <QuickAction
-                  to="/employees"
-                  icon={<UserPlus2 size={20} />}
-                  label="Manage Employees"
-                  description="Add or edit employee records"
-                />
-                <QuickAction
-                  to="/documents"
-                  icon={<FileText size={20} />}
-                  label="Verify Documents"
-                  description="Review pending uploads"
-                />
-                <QuickAction
-                  to="/certifications"
-                  icon={<Award size={20} />}
-                  label="Certifications"
-                  description="Track and verify certs"
-                />
-                <QuickAction
-                  to="/org-chart"
-                  icon={<Users size={20} />}
-                  label="Org Chart"
-                  description="View organization structure"
-                />
-                <QuickAction
-                  to="/audit-logs"
-                  icon={<ShieldAlert size={20} />}
-                  label="Audit Logs"
-                  description="Review system activity"
-                />
-                <QuickAction
-                  to="/salary"
-                  icon={<DollarSign size={20} />}
-                  label="Salary Management"
-                  description="Manage salary revisions"
-                />
-              </div>
-            </div>
+          <StaggerContainer className="grid grid-cards" delay={0.3}>
+            <StaggerItem><Stat title="Expired Certifications" value={String(data.expired_certifications)} icon={<ShieldAlert />} /></StaggerItem>
+            <StaggerItem><Stat title="Pending Verifications" value={String(data.pending_verifications)} icon={<Clock />} /></StaggerItem>
+          </StaggerContainer>
+
+          <FadeIn delay={0.5} className="dashboard-columns">
             <RecentNotifications />
-          </div>
+          </FadeIn>
         </div>
       )}
     </AsyncState>
@@ -516,15 +360,17 @@ export default function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="dashboard-page">
-      <PageHeader
-        title={`Welcome back, ${user.name} 👋`}
-        subtitle="Here's an overview of your portal."
-        actions={<span className="muted" style={{ fontSize: 13 }}>{todayFormatted()}</span>}
-      />
-      {user.role === "employee" && <EmployeeDashboard />}
-      {user.role === "manager" && <ManagerDashboard />}
-      {user.role === "hr_admin" && <HrDashboard />}
-    </div>
+    <PageTransition>
+      <div className="dashboard-page">
+        <PageHeader
+          title={`Welcome back, ${user.name} 👋`}
+          subtitle="Here's an overview of your portal."
+          actions={<span className="muted" style={{ fontSize: 13 }}>{todayFormatted()}</span>}
+        />
+        {user.role === "employee" && <EmployeeDashboard />}
+        {user.role === "manager" && <ManagerDashboard />}
+        {user.role === "hr_admin" && <HrDashboard />}
+      </div>
+    </PageTransition>
   );
 }
