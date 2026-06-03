@@ -6,6 +6,10 @@ export interface Employee {
   full_name: string;
   email: string;
   mobile_number: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  marital_status: string | null;
+  date_of_joining: string | null;
   department: string | null;
   designation: string | null;
   employment_status: string | null;
@@ -13,9 +17,27 @@ export interface Employee {
   manager_id: string | null;
 }
 
+export interface EmployeeCreate {
+  employee_code: string;
+  full_name: string;
+  email: string;
+  mobile_number?: string;
+  date_of_birth?: string;
+  gender?: string;
+  marital_status?: string;
+  date_of_joining?: string;
+  department?: string;
+  designation?: string;
+  employment_status?: string;
+  work_location?: string;
+  manager_id?: string;
+}
+
 export const employeesApi = {
   list: (q?: string) =>
     api.get<Employee[]>(`/employees${q ? `?q=${encodeURIComponent(q)}` : ""}`),
 
   get: (id: string) => api.get<Employee>(`/employees/${id}`),
+
+  create: (data: EmployeeCreate) => api.post<Employee>("/employees", data),
 };

@@ -348,3 +348,40 @@ select.input {
   background-position: right 12px center;
   padding-right: 32px;
 }
+
+/* Form grid (add employee, etc.) */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0 20px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--gray-200);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--gray-500);
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.tab-btn:hover {
+  color: var(--black);
+}
+
+.tab-btn-active {
+  color: var(--black);
+  border-bottom-color: var(--black);
+}

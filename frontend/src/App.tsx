@@ -1,11 +1,14 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AuditLogs from "./pages/AuditLogs";
 import Certifications from "./pages/Certifications";
 import Dashboard from "./pages/Dashboard";
 import Documents from "./pages/Documents";
+import EmployeeDetail from "./pages/EmployeeDetail";
 import Employees from "./pages/Employees";
 import Login from "./pages/Login";
+import Notifications from "./pages/Notifications";
 import Performance from "./pages/Performance";
 import Profile from "./pages/Profile";
 import Salary from "./pages/Salary";
@@ -27,7 +30,10 @@ export default function App() {
         <Route path="/certifications" element={<Certifications />} />
         <Route path="/salary" element={<Salary />} />
         <Route path="/performance" element={<Performance />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/audit-logs" element={<AuditLogs />} />
         <Route path="/employees" element={<Employees />} />
+        <Route path="/employees/:id" element={<EmployeeDetail />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

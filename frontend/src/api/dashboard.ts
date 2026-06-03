@@ -1,0 +1,32 @@
+import { api } from "./client";
+
+export interface EmployeeDashboard {
+  designation: string | null;
+  date_of_joining: string | null;
+  current_salary: string | null;
+  latest_rating: string | null;
+  certification_count: number;
+  expiring_soon: number;
+}
+
+export interface ManagerDashboard {
+  team_members: number;
+  avg_team_rating: string | null;
+  cert_expiry_alerts: number;
+  missing_documents: number;
+}
+
+export interface HrDashboard {
+  total_employees: number;
+  active_employees: number;
+  new_joiners: number;
+  employees_missing_documents: number;
+  expired_certifications: number;
+  pending_verifications: number;
+}
+
+export const dashboardApi = {
+  employee: () => api.get<EmployeeDashboard>("/dashboard/employee"),
+  manager: () => api.get<ManagerDashboard>("/dashboard/manager"),
+  hr: () => api.get<HrDashboard>("/dashboard/hr"),
+};

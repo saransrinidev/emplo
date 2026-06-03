@@ -3,7 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
-from app.api import auth, employees
+from app.api import (
+    audit,
+    auth,
+    certifications,
+    dashboard,
+    documents,
+    employees,
+    notifications,
+    performance,
+    permissions,
+    profile,
+    salary,
+)
 from app.db.session import get_db
 
 app = FastAPI(title="Employee & HR Portal API", version="0.1.0")
@@ -36,4 +48,13 @@ def health_db(db: Session = Depends(get_db)) -> dict:
 
 app.include_router(health_router)
 app.include_router(auth.router)
+app.include_router(profile.router)
 app.include_router(employees.router)
+app.include_router(documents.router)
+app.include_router(certifications.router)
+app.include_router(salary.router)
+app.include_router(performance.router)
+app.include_router(dashboard.router)
+app.include_router(notifications.router)
+app.include_router(permissions.router)
+app.include_router(audit.router)

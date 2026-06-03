@@ -1,10 +1,13 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
+import { notificationsApi } from "../api/features";
 
 interface NavItem {
   to: string;
   label: string;
   roles: Role[];
+  badge?: number;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -22,11 +25,24 @@ const NAV_ITEMS: NavItem[] = [
     label: "Performance",
     roles: ["employee", "manager", "hr_admin"],
   },
+  {
+    to: "/notifications",
+    label: "Notifications",
+    roles: ["employee", "manager", "hr_admin"],
+  },
   { to: "/employees", label: "Employees", roles: ["manager", "hr_admin"] },
+  { to: "/audit-logs", label: "Audit Logs", roles: ["hr_admin"] },
 ];
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    notificationsApi.unreadCount().then((r) => setUnreadCount(r.count)).catch(() => {});
+  }, [user]);
+
   if (!user) return null;
 
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
@@ -45,6 +61,11 @@ export default function Sidebar() {
             }
           >
             {item.label}
+            {item.to === "/notifications" && unreadCount > 0 && (
+              <span className="badge badge-solid" style={{ marginLeft: 8, fontSize: 11 }}>
+                {unreadCount}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
