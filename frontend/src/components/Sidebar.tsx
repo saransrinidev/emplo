@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   User,
@@ -15,6 +15,7 @@ import {
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
+  X,
 } from "lucide-react";
 import { useAuth, type Role } from "../auth/AuthContext";
 import { notificationsApi } from "../api/features";
@@ -92,13 +93,19 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
-  const { collapsed, toggleSidebar } = useSidebar();
+  const { collapsed, mobileOpen, toggleSidebar, closeMobile } = useSidebar();
+  const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     notificationsApi.unreadCount().then((r) => setUnreadCount(r.count)).catch(() => {});
   }, [user]);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    closeMobile();
+  }, [location.pathname]);
 
   if (!user) return null;
 
@@ -111,17 +118,33 @@ export default function Sidebar() {
     .slice(0, 2)
     .toUpperCase();
 
+  const sidebarClasses = [
+    "sidebar",
+    collapsed ? "sidebar-collapsed" : "",
+    mobileOpen ? "sidebar-open" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""}`}>
+    <aside className={sidebarClasses}>
       <div className="sidebar-brand">
-        {!collapsed && <span className="sidebar-brand-text">HR Portal</span>}
+        <span className="sidebar-brand-text">HR Portal</span>
+        {/* Desktop: collapse toggle. Mobile: close button */}
         <button
-          className="sidebar-toggle"
+          className="sidebar-toggle sidebar-toggle-desktop"
           onClick={toggleSidebar}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+        </button>
+        <button
+          className="sidebar-toggle sidebar-toggle-mobile"
+          onClick={closeMobile}
+          aria-label="Close menu"
+        >
+          <X size={20} />
         </button>
       </div>
       <nav className="sidebar-nav">
@@ -136,7 +159,7 @@ export default function Sidebar() {
             title={collapsed ? item.label : undefined}
           >
             {item.icon}
-            {!collapsed && <span className="nav-link-label">{item.label}</span>}
+            <span className="nav-link-label">{item.label}</span>
             {item.to === "/notifications" && unreadCount > 0 && (
               <span className="nav-badge" />
             )}
@@ -146,17 +169,13 @@ export default function Sidebar() {
       <div className="sidebar-footer">
         <div className="sidebar-user">
           <div className="sidebar-avatar">{initials}</div>
-          {!collapsed && (
-            <>
-              <div className="sidebar-user-info">
-                <div className="sidebar-user-name">{user.name}</div>
-                <div className="sidebar-user-role">{roleLabel(user.role)}</div>
-              </div>
-              <button className="sidebar-user-toggle" aria-label="User menu">
-                <ChevronDown size={16} />
-              </button>
-            </>
-          )}
+          <div className="sidebar-user-info">
+            <div className="sidebar-user-name">{user.name}</div>
+            <div className="sidebar-user-role">{roleLabel(user.role)}</div>
+          </div>
+          <button className="sidebar-user-toggle" aria-label="User menu">
+            <ChevronDown size={16} />
+          </button>
         </div>
         <button
           className="sidebar-logout"
@@ -164,7 +183,7 @@ export default function Sidebar() {
           title={collapsed ? "Log out" : undefined}
         >
           <LogOut size={18} />
-          {!collapsed && <span>Log out</span>}
+          <span className="sidebar-logout-label">Log out</span>
         </button>
       </div>
     </aside>

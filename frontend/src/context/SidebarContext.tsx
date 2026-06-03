@@ -2,7 +2,10 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface SidebarState {
   collapsed: boolean;
+  mobileOpen: boolean;
   toggleSidebar: () => void;
+  openMobile: () => void;
+  closeMobile: () => void;
 }
 
 const SidebarContext = createContext<SidebarState | undefined>(undefined);
@@ -11,6 +14,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem("sidebar-collapsed") === "true";
   });
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggleSidebar = () => {
     setCollapsed((prev) => {
@@ -20,8 +24,13 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const openMobile = () => setMobileOpen(true);
+  const closeMobile = () => setMobileOpen(false);
+
   return (
-    <SidebarContext.Provider value={{ collapsed, toggleSidebar }}>
+    <SidebarContext.Provider
+      value={{ collapsed, mobileOpen, toggleSidebar, openMobile, closeMobile }}
+    >
       {children}
     </SidebarContext.Provider>
   );
