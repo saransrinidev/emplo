@@ -9,7 +9,7 @@
   --card-foreground: 0 0% 3.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 3.9%;
-  --primary: 234 89% 64%;
+  --primary: 262 83% 58%;
   --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 96.1%;
   --secondary-foreground: 0 0% 9%;
@@ -22,7 +22,7 @@
   --success: 142 71% 45%;
   --border: 0 0% 89.8%;
   --input: 0 0% 89.8%;
-  --ring: 234 89% 64%;
+  --ring: 262 83% 58%;
   --radius: 0.625rem;
 
   /* Mapped to existing class usage */
@@ -41,14 +41,24 @@
   --sidebar-hover-bg: hsl(var(--accent));
 
   --primary-color: hsl(var(--primary));
-  --primary-light: hsl(234 89% 97%);
-  --primary-dark: hsl(234 89% 55%);
+  --primary-light: hsl(262 83% 96%);
+  --primary-dark: hsl(262 83% 50%);
+
+  /* Solid purple accents */
+  --gradient-primary: hsl(262 83% 58%);
+  --gradient-brand: hsl(262 83% 58%);
+  --gradient-surface: hsl(0 0% 100%);
+  --glow-primary: 0 8px 24px -6px rgba(147, 51, 234, 0.45);
+  --glow-soft: 0 4px 20px -8px rgba(147, 51, 234, 0.25);
+  --ring-glow: 0 0 0 3px rgba(147, 51, 234, 0.12);
 
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --transition: 0.15s ease;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.12), 0 4px 12px -4px rgb(0 0 0 / 0.08);
 }
 
 [data-theme="dark"] {
@@ -58,7 +68,7 @@
   --card-foreground: 0 0% 98%;
   --popover: 0 0% 7%;
   --popover-foreground: 0 0% 98%;
-  --primary: 234 80% 70%;
+  --primary: 262 83% 67%;
   --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 14.9%;
   --secondary-foreground: 0 0% 98%;
@@ -71,7 +81,7 @@
   --success: 142 71% 45%;
   --border: 0 0% 17%;
   --input: 0 0% 17%;
-  --ring: 234 80% 70%;
+  --ring: 262 83% 67%;
 
   --bg: hsl(var(--background));
   --surface: hsl(var(--card));
@@ -87,12 +97,21 @@
   --sidebar-hover-bg: hsl(var(--accent));
 
   --primary-color: hsl(var(--primary));
-  --primary-light: hsl(234 40% 14%);
-  --primary-dark: hsl(234 80% 62%);
+  --primary-light: hsl(262 40% 16%);
+  --primary-dark: hsl(262 83% 62%);
+
+  /* Solid purple accents (dark) */
+  --gradient-primary: hsl(262 83% 67%);
+  --gradient-brand: hsl(262 83% 67%);
+  --gradient-surface: hsl(0 0% 8%);
+  --glow-primary: 0 8px 28px -6px rgba(168, 85, 247, 0.5);
+  --glow-soft: 0 4px 24px -8px rgba(168, 85, 247, 0.35);
+  --ring-glow: 0 0 0 3px rgba(168, 85, 247, 0.2);
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 4px 16px -4px rgb(0 0 0 / 0.4);
 }
 
 /* Reset */
@@ -154,15 +173,22 @@ h2 {
   white-space: nowrap;
   border: none;
   border-radius: var(--radius);
-  background: var(--primary-color);
+  background: var(--gradient-primary);
+  background-size: 150% 150%;
   color: hsl(var(--primary-foreground));
   cursor: pointer;
-  transition: opacity var(--transition);
+  transition: box-shadow 0.25s ease, transform 0.15s ease, background-position 0.4s ease;
   outline: none;
 }
 
 .btn:hover {
-  opacity: 0.9;
+  box-shadow: var(--glow-primary);
+  transform: translateY(-1px);
+  background-position: 100% 100%;
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .btn:focus-visible {
@@ -183,7 +209,8 @@ h2 {
 
 .btn-outline:hover {
   background: var(--surface-hover);
-  opacity: 1;
+  box-shadow: none;
+  transform: translateY(-1px);
 }
 
 .btn-ghost {
@@ -194,7 +221,8 @@ h2 {
 
 .btn-ghost:hover {
   background: var(--surface-hover);
-  opacity: 1;
+  box-shadow: none;
+  transform: none;
 }
 
 .btn-sm {
@@ -206,6 +234,10 @@ h2 {
 .btn-destructive {
   background: hsl(var(--destructive));
   color: hsl(var(--destructive-foreground));
+}
+
+.btn-destructive:hover {
+  box-shadow: 0 8px 24px -6px hsl(var(--destructive) / 0.5);
 }
 
 /* ===================================
@@ -243,7 +275,7 @@ h2 {
 
 .input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+  box-shadow: var(--ring-glow);
 }
 
 select.input {
@@ -262,11 +294,12 @@ select.input {
   border-radius: var(--radius);
   background: var(--surface);
   padding: 24px;
-  transition: box-shadow var(--transition);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-lg);
+  border-color: hsl(var(--border));
 }
 
 .card-title {
@@ -313,6 +346,7 @@ select.input {
    STAT CARDS (dashboard)
    =================================== */
 .stat-card {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 14px;
@@ -321,12 +355,28 @@ select.input {
   background: var(--surface);
   padding: 20px;
   min-height: 120px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+  transition: box-shadow 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo), border-color 0.3s ease;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 100% 0%, rgba(107, 138, 255, 0.06), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .stat-card:hover {
-  box-shadow: var(--shadow);
-  border-color: hsl(var(--border));
+  box-shadow: var(--glow-soft), var(--shadow-md);
+  border-color: rgba(107, 138, 255, 0.3);
+  transform: translateY(-3px);
+}
+
+.stat-card:hover::before {
+  opacity: 1;
 }
 
 .stat-card-clickable {
@@ -349,24 +399,29 @@ select.input {
 }
 
 .stat-icon {
+  position: relative;
+  z-index: 1;
   width: 40px;
   height: 40px;
   border-radius: calc(var(--radius) - 2px);
-  background: var(--primary-light);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px -4px rgba(107, 138, 255, 0.5);
 }
 
 .stat-icon svg {
   width: 20px;
   height: 20px;
-  color: var(--primary-color);
-  stroke-width: 1.75;
+  color: #fff;
+  stroke-width: 2;
 }
 
 .stat-content {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -397,11 +452,10 @@ select.input {
 
 .stat-accent {
   width: 24px;
-  height: 2px;
-  background: var(--primary-color);
-  border-radius: 1px;
+  height: 3px;
+  background: var(--gradient-primary);
+  border-radius: 2px;
   margin-top: 8px;
-  opacity: 0.7;
 }
 
 /* ===================================
@@ -544,6 +598,16 @@ select.input {
   align-items: center;
   gap: 8px;
   overflow: hidden;
+}
+
+.sidebar-brand-text::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--gradient-brand);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px -2px rgba(124, 138, 255, 0.6);
 }
 
 .sidebar-toggle {
