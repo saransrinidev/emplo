@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from "react";
-import { certificationsApi } from "../api/features";
+import { certificationsApi } from "../api/certifications";
 import { uploadFile } from "../api/upload";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import ImageModal from "../components/ImageModal";
 import PageHeader from "../components/PageHeader";

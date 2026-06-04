@@ -36,6 +36,23 @@ export interface Profile {
   emergency_contacts: EmergencyContact[];
 }
 
+export interface EditableSections {
+  phone: boolean;
+  address: boolean;
+  certifications: boolean;
+}
+
 export const profileApi = {
   get: () => api.get<Profile>("/profile"),
+  editableSections: () => api.get<EditableSections>("/profile/editable-sections"),
+  updatePhone: (mobile_number: string) =>
+    api.put<Profile>("/profile/phone", { mobile_number }),
+  updateAddress: (data: {
+    address_type: string;
+    address_line?: string;
+    city?: string;
+    state?: string;
+    postal_code?: string;
+    country?: string;
+  }) => api.put<Profile>("/profile/address", data),
 };

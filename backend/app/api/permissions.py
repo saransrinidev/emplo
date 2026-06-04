@@ -56,6 +56,18 @@ def grant_permission(
     db.add(perm)
     db.commit()
     db.refresh(perm)
+
+    # Notify the employee that they have temporary edit access
+    emp_user = db.scalar(select(User).where(User.employee_id == payload.employee_id))
+    if emp_user:
+        from app.api.notifications import Notification
+        db.add(Notification(
+            user_id=emp_user.id,
+            title="Temporary Edit Access Granted",
+            message=f"You can now edit your {payload.section.value} until {payload.expiry_at.strftime('%b %d, %Y %H:%M')}.",
+        ))
+        db.commit()
+
     return PermissionOut(**{k: getattr(perm, k) for k in PermissionOut.model_fields if k != "is_active"}, is_active=_is_active(perm))
 
 

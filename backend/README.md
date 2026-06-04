@@ -15,13 +15,24 @@ Dependencies are installed in `.venv`. From the **workspace root**:
 
 ```bash
 # 1. Create tables + seed roles (idempotent)
-backend\.venv\Scripts\python.exe backend\init_db.py
+backend\.venv\Scripts\python.exe backend\scripts\init_db.py
 
-# 2. Run the API server
+# 2. Seed the initial HR admin account
+backend\.venv\Scripts\python.exe backend\scripts\seed.py
+
+# 3. Run the API server
 backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --app-dir backend
 ```
 
+To wipe all data and re-seed a fresh HR admin: add `--reset`:
+
+```bash
+backend\.venv\Scripts\python.exe backend\scripts\seed.py --reset
+```
+
 Then open http://127.0.0.1:8000/docs
+
+Default login (password `Secret123`): `saransrini@company.com` (hr_admin)
 
 ## Connection notes (Supabase)
 
@@ -58,3 +69,22 @@ Notes:
 - `users` (login) is separate from `employees` (HR record), linked via `users.employee_id`.
 - `employees.manager_id` self-references for the reporting hierarchy.
 - "Current salary" is derived from the latest approved `salary_revisions` row.
+
+## Project structure
+
+```
+backend/
+  app/
+    api/          FastAPI routers (one module per domain)
+    core/         Config and security (JWT, password hashing)
+    db/           SQLAlchemy engine, session, declarative base
+    models/       ORM models (one file per table)
+    schemas/      Pydantic request/response schemas
+    main.py       App factory + router registration
+    seed.py       Seeds the default roles
+    seed_data.py  Seeds the initial HR admin account
+  scripts/
+    init_db.py    Create tables + seed roles
+    seed.py       Seed HR admin (--reset to wipe first)
+  uploads/        Uploaded files (gitignored except .gitkeep)
+```

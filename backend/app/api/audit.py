@@ -7,7 +7,7 @@ import uuid
 from app.api.deps import require_roles
 from app.db.session import get_db
 from app.models.enums import RoleName
-from app.models.work_log import AuditLog
+from app.models.audit_log import AuditLog
 from app.models.user import User
 
 router = APIRouter(prefix="/audit", tags=["audit"])

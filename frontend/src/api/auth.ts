@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { Role } from "../auth/AuthContext";
+import type { Role } from "./types";
 
 export interface TokenResponse {
   access_token: string;

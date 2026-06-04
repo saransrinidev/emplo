@@ -14,7 +14,7 @@ from app.models.performance import PerformanceReview
 from app.models.role import Role
 from app.models.salary import SalaryRevision
 from app.models.user import User
-from app.models.work_log import AuditLog
+from app.models.audit_log import AuditLog
 
 __all__ = [
     "Base",

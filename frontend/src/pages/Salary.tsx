@@ -1,4 +1,4 @@
-import { salaryApi } from "../api/features";
+import { salaryApi } from "../api/salary";
 import AsyncState from "../components/AsyncState";
 import PageHeader from "../components/PageHeader";
 import { useApi } from "../hooks/useApi";

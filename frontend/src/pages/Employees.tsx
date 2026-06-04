@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { employeesApi, type Employee, type EmployeeCreate, type EmployeeWithRole, type BulkImportResult } from "../api/employees";
 import { ApiError } from "../api/client";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/PageHeader";
 
 const EMPTY_FORM: EmployeeCreate = {

@@ -1,20 +1,16 @@
 import { useState, type FormEvent } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { BellRing } from "lucide-react";
 import { employeesApi, type Employee } from "../api/employees";
-import {
-  certificationsApi,
-  documentsApi,
-  notificationsApi,
-  performanceApi,
-  permissionsApi,
-  salaryApi,
-  type DocumentItem,
-  type Permission,
-  type VerificationStatus,
-} from "../api/features";
+import { certificationsApi } from "../api/certifications";
+import { documentsApi, type DocumentItem } from "../api/documents";
+import { notificationsApi } from "../api/notifications";
+import { performanceApi } from "../api/performance";
+import { permissionsApi, type Permission } from "../api/permissions";
+import { salaryApi } from "../api/salary";
+import type { VerificationStatus } from "../api/types";
 import { ApiError } from "../api/client";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import ImageModal from "../components/ImageModal";
 import PageHeader from "../components/PageHeader";
@@ -32,7 +28,9 @@ export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("profile");
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get("tab") as Tab) || "profile";
+  const [tab, setTab] = useState<Tab>(initialTab);
   const isHr = user?.role === "hr_admin";
   const [alertTab, setAlertTab] = useState<Tab | null>(null);
 
@@ -250,6 +248,7 @@ function DocumentsTab({ empId, isHr }: { empId: string; isHr: boolean }) {
   const { data, loading, error } = useApi(() => documentsApi.list(empId), [empId, refreshKey]);
   const [docs, setDocs] = useState<DocumentItem[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [viewUrl, setViewUrl] = useState<{ url: string; name: string } | null>(null);
 
   // Sync once loaded
   if (data && docs.length === 0 && data.length > 0) setDocs(data);
@@ -259,6 +258,9 @@ function DocumentsTab({ empId, isHr }: { empId: string; isHr: boolean }) {
     const updated = await documentsApi.verify(docId, status);
     setDocs((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
   };
+
+  const isPdf = (url: string) => url.includes("application/pdf") || url.endsWith(".pdf");
+  const isImage = (url: string) => url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
 
   return (
     <AsyncState loading={loading} error={error}>
@@ -286,35 +288,64 @@ function DocumentsTab({ empId, isHr }: { empId: string; isHr: boolean }) {
               <th>Type</th>
               <th>Uploaded</th>
               <th>Status</th>
-              {isHr && <th>Actions</th>}
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {list.length === 0 ? (
-              <tr><td colSpan={isHr ? 5 : 4} className="muted" style={{ textAlign: "center" }}>No documents.</td></tr>
+              <tr><td colSpan={5} className="muted" style={{ textAlign: "center" }}>No documents.</td></tr>
             ) : (
               list.map((doc) => (
                 <tr key={doc.id}>
                   <td>{doc.document_name ?? "Document"}</td>
-                  <td className="muted">{doc.document_type}</td>
+                  <td className="muted" style={{ textTransform: "capitalize" }}>{doc.document_type}</td>
                   <td className="muted">{doc.created_at.slice(0, 10)}</td>
                   <td><StatusBadge status={doc.status} /></td>
-                  {isHr && (
-                    <td>
-                      {doc.status === "uploaded" && (
-                        <>
-                          <button className="btn btn-sm" style={{ marginRight: 4 }} onClick={() => handleVerify(doc.id, "verified")}>Verify</button>
-                          <button className="btn btn-outline btn-sm" onClick={() => handleVerify(doc.id, "rejected")}>Reject</button>
-                        </>
-                      )}
-                    </td>
-                  )}
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    {doc.file_url && (
+                      <button className="btn btn-outline btn-sm" style={{ marginRight: 4 }} onClick={() => setViewUrl({ url: doc.file_url, name: doc.document_name ?? "Document" })}>
+                        View
+                      </button>
+                    )}
+                    {isHr && doc.status === "uploaded" && (
+                      <>
+                        <button className="btn btn-sm" style={{ marginRight: 4 }} onClick={() => handleVerify(doc.id, "verified")}>Verify</button>
+                        <button className="btn btn-outline btn-sm" onClick={() => handleVerify(doc.id, "rejected")}>Reject</button>
+                      </>
+                    )}
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Document viewer modal */}
+      {viewUrl && (
+        <div className="modal-overlay" onClick={() => setViewUrl(null)}>
+          <div className="modal-content" style={{ maxWidth: 800, maxHeight: "90vh" }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{viewUrl.name}</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setViewUrl(null)}>✕</button>
+            </div>
+            <div style={{ padding: 20, display: "flex", justifyContent: "center", alignItems: "center", minHeight: 300, overflow: "auto" }}>
+              {isImage(viewUrl.url) && (
+                <img src={viewUrl.url} alt={viewUrl.name} style={{ maxWidth: "100%", maxHeight: "70vh", borderRadius: "var(--radius)" }} />
+              )}
+              {isPdf(viewUrl.url) && (
+                <iframe src={viewUrl.url} title={viewUrl.name} style={{ width: "100%", height: "70vh", border: "none", borderRadius: "var(--radius)" }} />
+              )}
+              {!isImage(viewUrl.url) && !isPdf(viewUrl.url) && (
+                <div style={{ textAlign: "center", padding: 40 }}>
+                  <p style={{ color: "var(--text-secondary)", marginBottom: 16 }}>Cannot preview this file type.</p>
+                  <a href={viewUrl.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm">Open in new tab</a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AsyncState>
   );
 }

@@ -1,22 +1,40 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, ExternalLink } from "lucide-react";
-import { notificationsApi, type NotificationItem } from "../api/features";
+import { notificationsApi, type NotificationItem } from "../api/notifications";
 import AsyncState from "../components/AsyncState";
 import PageHeader from "../components/PageHeader";
 import { useApi } from "../hooks/useApi";
 
-// Map notification title keywords to routes
+// Extract employee ID from notification message if present: [employee:UUID]
+function extractEmployeeId(message: string): string | null {
+  const match = message.match(/\[employee:([a-f0-9-]+)\]/i);
+  return match ? match[1] : null;
+}
+
+// Map notification to a route — for HR/manager it navigates to the employee's detail tab
 function getNotificationRoute(notification: NotificationItem): string | null {
   const title = notification.title.toLowerCase();
   const message = notification.message.toLowerCase();
+  const employeeId = extractEmployeeId(notification.message);
 
+  // If has employee context, navigate to their detail page with correct tab
+  if (employeeId) {
+    if (title.includes("document")) return `/employees/${employeeId}?tab=documents`;
+    if (title.includes("certification") || title.includes("certificate")) return `/employees/${employeeId}?tab=certifications`;
+    if (title.includes("salary")) return `/employees/${employeeId}?tab=salary`;
+    if (title.includes("performance") || title.includes("review")) return `/employees/${employeeId}?tab=performance`;
+    return `/employees/${employeeId}`;
+  }
+
+  // No employee context — navigate to own pages
   if (title.includes("document") || message.includes("document")) return "/documents";
   if (title.includes("certification") || title.includes("certificate") || message.includes("certif")) return "/certifications";
   if (title.includes("salary") || message.includes("salary")) return "/salary";
   if (title.includes("performance") || title.includes("review") || message.includes("performance")) return "/performance";
   if (title.includes("profile") || message.includes("profile")) return "/profile";
   if (title.includes("permission") || message.includes("permission")) return "/profile";
+  if (title.includes("edit access")) return "/profile";
 
   return null;
 }
@@ -109,7 +127,7 @@ export default function Notifications() {
                         {n.title}
                         {!n.is_read && <span className="badge badge-solid" style={{ marginLeft: 8, fontSize: 10 }}>New</span>}
                       </div>
-                      <p className="notification-card-message">{n.message}</p>
+                      <p className="notification-card-message">{n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "")}</p>
                       <p className="notification-card-time">
                         {formatTime(n.created_at)}
                       </p>

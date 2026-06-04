@@ -1,6 +1,6 @@
 """Seed the single HR admin account.
 
-Run: backend\\.venv\\Scripts\\python.exe backend\\seed_demo.py
+Run: backend\\.venv\\Scripts\\python.exe backend\\scripts\\seed.py
 Login (password: Secret123):
     saransrini@company.com  (hr_admin)
 """

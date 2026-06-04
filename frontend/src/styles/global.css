@@ -1699,6 +1699,54 @@ select.input {
   .form-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Modal responsive */
+  .modal-content {
+    max-width: 100% !important;
+    margin: 0 8px;
+    max-height: 95vh;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  /* Table action buttons stack on small screens */
+  .table td[style*="white-space: nowrap"] {
+    white-space: normal !important;
+  }
+
+  /* Notification cards */
+  .notification-card {
+    padding: 14px 16px;
+  }
+
+  .notification-card-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* Document cards */
+  .upload-box {
+    padding: 20px;
+  }
+
+  /* Info banner */
+  .info-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .info-banner-btn {
+    width: 100%;
+  }
+
+  /* Access banner */
+  .access-banner {
+    flex-direction: column;
+    text-align: center;
+  }
 }
 
 @media (max-width: 400px) {
@@ -2114,4 +2162,35 @@ select.input {
   .auth-form-brand {
     display: block;
   }
+}
+
+
+/* Temporary access banner (Profile) */
+.access-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: var(--primary-light);
+  border: 1px solid rgba(147, 51, 234, 0.2);
+  color: var(--text);
+}
+
+.access-banner svg {
+  color: var(--primary-color);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.access-banner strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.access-banner p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.5;
 }

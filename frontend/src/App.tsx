@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RoleGuard from "./components/RoleGuard";
 import AuditLogs from "./pages/AuditLogs";
 import Certifications from "./pages/Certifications";
 import Dashboard from "./pages/Dashboard";
@@ -25,17 +26,24 @@ export default function App() {
           </ProtectedRoute>
         }
       >
+        {/* All roles */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/documents" element={<Documents />} />
-        <Route path="/certifications" element={<Certifications />} />
-        <Route path="/salary" element={<Salary />} />
-        <Route path="/performance" element={<Performance />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/audit-logs" element={<AuditLogs />} />
-        <Route path="/org-chart" element={<OrgChart />} />
-        <Route path="/employees" element={<Employees />} />
-        <Route path="/employees/:id" element={<EmployeeDetail />} />
+
+        {/* Employee + Manager only */}
+        <Route path="/documents" element={<RoleGuard allowed={["employee", "manager"]}><Documents /></RoleGuard>} />
+        <Route path="/certifications" element={<RoleGuard allowed={["employee", "manager"]}><Certifications /></RoleGuard>} />
+        <Route path="/salary" element={<RoleGuard allowed={["employee", "manager"]}><Salary /></RoleGuard>} />
+        <Route path="/performance" element={<RoleGuard allowed={["employee", "manager"]}><Performance /></RoleGuard>} />
+
+        {/* Manager + HR only */}
+        <Route path="/employees" element={<RoleGuard allowed={["manager", "hr_admin"]}><Employees /></RoleGuard>} />
+        <Route path="/employees/:id" element={<RoleGuard allowed={["manager", "hr_admin"]}><EmployeeDetail /></RoleGuard>} />
+
+        {/* HR only */}
+        <Route path="/org-chart" element={<RoleGuard allowed={["hr_admin"]}><OrgChart /></RoleGuard>} />
+        <Route path="/audit-logs" element={<RoleGuard allowed={["hr_admin"]}><AuditLogs /></RoleGuard>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -76,7 +76,7 @@ def add_certification(
         notify_hr_and_manager(
             db, user,
             title="Certification Added",
-            message=f"{emp_name} added a certification: {cert.certificate_name}",
+            message=f"{emp_name} added a certification: {cert.certificate_name} [employee:{target_employee_id}]",
         )
         db.commit()
 

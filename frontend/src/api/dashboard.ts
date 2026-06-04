@@ -3,6 +3,7 @@ import { api } from "./client";
 export interface EmployeeDashboard {
   designation: string | null;
   date_of_joining: string | null;
+  manager_name: string | null;
   current_salary: string | null;
   latest_rating: string | null;
   certification_count: number;
@@ -14,6 +15,7 @@ export interface ManagerDashboard {
   avg_team_rating: string | null;
   cert_expiry_alerts: number;
   missing_documents: number;
+  upcoming_anniversaries: number;
 }
 
 export interface HrDashboard {
@@ -23,6 +25,10 @@ export interface HrDashboard {
   employees_missing_documents: number;
   expired_certifications: number;
   pending_verifications: number;
+  certs_expiring_30: number;
+  certs_expiring_60: number;
+  certs_expiring_90: number;
+  recent_salary_revisions: number;
 }
 
 export const dashboardApi = {

@@ -17,8 +17,8 @@ import {
   PanelLeftOpen,
   X,
 } from "lucide-react";
-import { useAuth, type Role } from "../auth/AuthContext";
-import { notificationsApi } from "../api/features";
+import { useAuth, type Role } from "../context/AuthContext";
+import { notificationsApi } from "../api/notifications";
 import { useSidebar } from "../context/SidebarContext";
 
 interface NavItem {

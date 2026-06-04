@@ -1,4 +1,4 @@
-import type { VerificationStatus } from "../api/features";
+import type { VerificationStatus } from "../api/types";
 
 const LABELS: Record<VerificationStatus, string> = {
   uploaded: "Uploaded",

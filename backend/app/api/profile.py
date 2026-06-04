@@ -1,29 +1,39 @@
+import uuid
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
+from app.models.address import EmployeeAddress
+from app.models.edit_permission import EmployeeEditPermission
 from app.models.employee import Employee
+from app.models.enums import AddressType, EditableSection
 from app.models.user import User
 from app.schemas.profile import ProfileOut
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 
-@router.get("", response_model=ProfileOut)
-def get_my_profile(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> ProfileOut:
-    if not user.employee_id:
-        raise HTTPException(
-            status_code=404,
-            detail="No employee record is linked to this account.",
+def _has_active_permission(db: Session, employee_id: uuid.UUID, section: EditableSection) -> bool:
+    """Check if the employee has an active (non-revoked, within window) permission."""
+    now = datetime.now(timezone.utc)
+    perm = db.scalar(
+        select(EmployeeEditPermission).where(
+            EmployeeEditPermission.employee_id == employee_id,
+            EmployeeEditPermission.section == section,
+            EmployeeEditPermission.is_revoked == False,  # noqa: E712
+            EmployeeEditPermission.start_at <= now,
+            EmployeeEditPermission.expiry_at >= now,
         )
-    emp = db.get(Employee, user.employee_id)
-    if emp is None:
-        raise HTTPException(status_code=404, detail="Employee record not found")
+    )
+    return perm is not None
 
+
+def _build_profile(db: Session, emp: Employee) -> ProfileOut:
     manager_name = None
     if emp.manager_id:
         mgr = db.get(Employee, emp.manager_id)
@@ -47,3 +57,113 @@ def get_my_profile(
         addresses=emp.addresses,
         emergency_contacts=emp.emergency_contacts,
     )
+
+
+@router.get("", response_model=ProfileOut)
+def get_my_profile(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ProfileOut:
+    if not user.employee_id:
+        raise HTTPException(
+            status_code=404,
+            detail="No employee record is linked to this account.",
+        )
+    emp = db.get(Employee, user.employee_id)
+    if emp is None:
+        raise HTTPException(status_code=404, detail="Employee record not found")
+    return _build_profile(db, emp)
+
+
+# --- Which sections can the employee currently edit? ---
+
+class EditableSectionsOut(BaseModel):
+    phone: bool
+    address: bool
+    certifications: bool
+
+
+@router.get("/editable-sections", response_model=EditableSectionsOut)
+def get_editable_sections(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> EditableSectionsOut:
+    if not user.employee_id:
+        return EditableSectionsOut(phone=False, address=False, certifications=False)
+    return EditableSectionsOut(
+        phone=_has_active_permission(db, user.employee_id, EditableSection.phone),
+        address=_has_active_permission(db, user.employee_id, EditableSection.address),
+        certifications=_has_active_permission(db, user.employee_id, EditableSection.certifications),
+    )
+
+
+# --- Update phone (requires active 'phone' permission) ---
+
+class UpdatePhoneRequest(BaseModel):
+    mobile_number: str
+
+
+@router.put("/phone", response_model=ProfileOut)
+def update_phone(
+    payload: UpdatePhoneRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ProfileOut:
+    if not user.employee_id:
+        raise HTTPException(status_code=404, detail="No employee record linked")
+    if not _has_active_permission(db, user.employee_id, EditableSection.phone):
+        raise HTTPException(status_code=403, detail="You don't have active permission to edit your phone number.")
+    emp = db.get(Employee, user.employee_id)
+    if emp is None:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    emp.mobile_number = payload.mobile_number
+    db.commit()
+    db.refresh(emp)
+    return _build_profile(db, emp)
+
+
+# --- Update address (requires active 'address' permission) ---
+
+class UpdateAddressRequest(BaseModel):
+    address_type: AddressType
+    address_line: str | None = None
+    city: str | None = None
+    state: str | None = None
+    postal_code: str | None = None
+    country: str | None = None
+
+
+@router.put("/address", response_model=ProfileOut)
+def update_address(
+    payload: UpdateAddressRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ProfileOut:
+    if not user.employee_id:
+        raise HTTPException(status_code=404, detail="No employee record linked")
+    if not _has_active_permission(db, user.employee_id, EditableSection.address):
+        raise HTTPException(status_code=403, detail="You don't have active permission to edit your address.")
+    emp = db.get(Employee, user.employee_id)
+    if emp is None:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Find existing address of this type, or create one
+    address = db.scalar(
+        select(EmployeeAddress).where(
+            EmployeeAddress.employee_id == emp.id,
+            EmployeeAddress.address_type == payload.address_type,
+        )
+    )
+    if address is None:
+        address = EmployeeAddress(employee_id=emp.id, address_type=payload.address_type)
+        db.add(address)
+
+    address.address_line = payload.address_line
+    address.city = payload.city
+    address.state = payload.state
+    address.postal_code = payload.postal_code
+    address.country = payload.country
+
+    db.commit()
+    db.refresh(emp)
+    return _build_profile(db, emp)

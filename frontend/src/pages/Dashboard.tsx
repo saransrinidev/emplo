@@ -21,15 +21,13 @@ import {
   ChevronRight,
   CalendarClock,
   BellRing,
+  Timer,
+  Banknote,
 } from "lucide-react";
 import { dashboardApi } from "../api/dashboard";
-import {
-  notificationsApi,
-  certificationsApi,
-  type NotificationItem,
-  type Certification,
-} from "../api/features";
-import { useAuth } from "../auth/AuthContext";
+import { notificationsApi, type NotificationItem } from "../api/notifications";
+import { certificationsApi, type Certification } from "../api/certifications";
+import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import { StaggerContainer, StaggerItem, FadeIn, PageTransition } from "../components/Motion";
 import PageHeader from "../components/PageHeader";
@@ -202,7 +200,7 @@ function RecentNotifications() {
             {getIcon(n.title)}
             <div className="notif-content">
               <div className="notif-title">{n.title}</div>
-              <div className="notif-message">{n.message}</div>
+              <div className="notif-message">{n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "")}</div>
             </div>
             <div className="notif-time">{timeAgo(n.created_at)}</div>
           </div>
@@ -246,6 +244,9 @@ function EmployeeDashboard() {
 
           <StaggerContainer className="grid grid-cards" delay={0.3}>
             <StaggerItem>
+              <Stat title="Reporting To" value={data.manager_name ?? "None"} icon={<Users />} />
+            </StaggerItem>
+            <StaggerItem>
               <Stat
                 title="Certifications"
                 value={String(data.certification_count)}
@@ -259,7 +260,7 @@ function EmployeeDashboard() {
               <Stat
                 title="Expiring Soon"
                 value={String(data.expiring_soon)}
-                subtitle="Needs Attention"
+                subtitle="Within 90 days"
                 icon={<AlertTriangle />}
                 clickable
                 to="/certifications"
@@ -313,7 +314,18 @@ function ManagerDashboard() {
             <StaggerItem><Stat title="Missing Documents" value={String(data.missing_documents)} icon={<FileWarning />} /></StaggerItem>
           </StaggerContainer>
 
-          <FadeIn delay={0.4} className="dashboard-columns">
+          <StaggerContainer className="grid grid-cards" delay={0.3}>
+            <StaggerItem>
+              <Stat
+                title="Work Anniversaries"
+                value={String(data.upcoming_anniversaries)}
+                subtitle="Next 30 days"
+                icon={<Calendar />}
+              />
+            </StaggerItem>
+          </StaggerContainer>
+
+          <FadeIn delay={0.5} className="dashboard-columns">
             <UpcomingReminders />
             <RecentNotifications />
           </FadeIn>
@@ -337,16 +349,22 @@ function HrDashboard() {
           <StaggerContainer className="grid grid-cards">
             <StaggerItem><Stat title="Total Employees" value={String(data.total_employees)} icon={<Users />} /></StaggerItem>
             <StaggerItem><Stat title="Active Employees" value={String(data.active_employees)} icon={<UserCheck />} /></StaggerItem>
-            <StaggerItem><Stat title="New Joiners" value={String(data.new_joiners)} icon={<UserPlus />} /></StaggerItem>
+            <StaggerItem><Stat title="New Joiners" value={String(data.new_joiners)} subtitle="Last 90 days" icon={<UserPlus />} /></StaggerItem>
             <StaggerItem><Stat title="Missing Documents" value={String(data.employees_missing_documents)} icon={<FileWarning />} /></StaggerItem>
           </StaggerContainer>
 
           <StaggerContainer className="grid grid-cards" delay={0.3}>
-            <StaggerItem><Stat title="Expired Certifications" value={String(data.expired_certifications)} icon={<ShieldAlert />} /></StaggerItem>
+            <StaggerItem><Stat title="Expired Certs" value={String(data.expired_certifications)} icon={<ShieldAlert />} /></StaggerItem>
             <StaggerItem><Stat title="Pending Verifications" value={String(data.pending_verifications)} icon={<Clock />} /></StaggerItem>
+            <StaggerItem><Stat title="Expiring in 30d" value={String(data.certs_expiring_30)} subtitle="Certifications" icon={<Timer />} /></StaggerItem>
+            <StaggerItem><Stat title="Expiring in 90d" value={String(data.certs_expiring_90)} subtitle="Certifications" icon={<AlertTriangle />} /></StaggerItem>
           </StaggerContainer>
 
-          <FadeIn delay={0.5} className="dashboard-columns">
+          <StaggerContainer className="grid grid-cards" delay={0.5}>
+            <StaggerItem><Stat title="Recent Salary Revisions" value={String(data.recent_salary_revisions)} subtitle="Last 30 days" icon={<Banknote />} /></StaggerItem>
+          </StaggerContainer>
+
+          <FadeIn delay={0.6} className="dashboard-columns">
             <RecentNotifications />
           </FadeIn>
         </div>

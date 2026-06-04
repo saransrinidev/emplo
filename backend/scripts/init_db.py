@@ -1,13 +1,15 @@
-"""Create all tables in the database, then seed default roles.
+"""Create all database tables, then seed the default roles.
 
 Uses SQLAlchemy's create_all (no Alembic needed for first setup).
 
 Usage (from workspace root):
-    backend\\.venv\\Scripts\\python.exe backend\\init_db.py
+    backend\\.venv\\Scripts\\python.exe backend\\scripts\\init_db.py
 """
 import os
+import sys
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# Make the `app` package importable when run as a standalone script.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.db.session import engine
 from app.models import Base

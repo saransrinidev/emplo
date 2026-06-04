@@ -56,16 +56,9 @@ def list_reviews(
 def add_review(
     payload: PerformanceReviewCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles(RoleName.hr_admin, RoleName.manager)),
+    user: User = Depends(require_roles(RoleName.hr_admin)),
 ) -> PerformanceReviewOut:
-    # Managers can only add reviews for their direct reports
-    if user.role.name == RoleName.manager and user.employee_id:
-        target = db.get(Employee, payload.employee_id)
-        if not target or target.manager_id != user.employee_id:
-            from fastapi import HTTPException
-            raise HTTPException(status_code=403, detail="Can only review your direct reports")
-
-    # Set reviewer_id to the manager's employee_id if not provided
+    # Set reviewer_id to the HR's employee_id if not provided
     data = payload.model_dump()
     if not data.get("reviewer_id") and user.employee_id:
         data["reviewer_id"] = user.employee_id
@@ -76,7 +69,6 @@ def add_review(
     db.refresh(review)
 
     # Notify the employee about the new review
-    from app.api.notify import notify_hr_and_manager
     emp = db.get(Employee, payload.employee_id)
     if emp:
         from app.api.notifications import Notification

@@ -56,7 +56,7 @@ def upload_document(
         notify_hr_and_manager(
             db, user,
             title="Document Uploaded",
-            message=f"{emp_name} uploaded a document: {doc.document_name or doc.document_type}",
+            message=f"{emp_name} uploaded a document: {doc.document_name or doc.document_type} [employee:{target_employee_id}]",
         )
         db.commit()
 

@@ -6,8 +6,9 @@ import {
   type ReactNode,
 } from "react";
 import { authApi, type TokenResponse } from "../api/auth";
+import type { Role } from "../api/types";
 
-export type Role = "employee" | "manager" | "hr_admin";
+export type { Role };
 
 export interface SessionUser {
   id: string;

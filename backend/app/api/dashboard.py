@@ -33,6 +33,13 @@ def employee_dashboard(
     if emp is None:
         raise HTTPException(status_code=404, detail="Employee not found")
 
+    # Manager name
+    manager_name = None
+    if emp.manager_id:
+        mgr = db.get(Employee, emp.manager_id)
+        manager_name = mgr.full_name if mgr else None
+
+    # Current salary
     current = db.scalars(
         select(SalaryRevision)
         .where(
@@ -43,6 +50,7 @@ def employee_dashboard(
         .limit(1)
     ).first()
 
+    # Latest performance rating
     latest_review = db.scalars(
         select(PerformanceReview)
         .where(PerformanceReview.employee_id == emp.id)
@@ -50,11 +58,13 @@ def employee_dashboard(
         .limit(1)
     ).first()
 
+    # Certification count and expiring
     cert_count = db.scalar(
         select(func.count())
         .select_from(Certification)
         .where(Certification.employee_id == emp.id)
-    )
+    ) or 0
+
     soon = date.today() + timedelta(days=90)
     expiring = db.scalar(
         select(func.count())
@@ -63,16 +73,18 @@ def employee_dashboard(
             Certification.employee_id == emp.id,
             Certification.expiry_date.is_not(None),
             Certification.expiry_date <= soon,
+            Certification.expiry_date >= date.today(),
         )
-    )
+    ) or 0
 
     return EmployeeDashboardOut(
         designation=emp.designation,
         date_of_joining=str(emp.date_of_joining) if emp.date_of_joining else None,
+        manager_name=manager_name,
         current_salary=current.revised_salary if current else None,
         latest_rating=str(latest_review.rating) if latest_review and latest_review.rating else None,
-        certification_count=cert_count or 0,
-        expiring_soon=expiring or 0,
+        certification_count=cert_count,
+        expiring_soon=expiring,
     )
 
 
@@ -86,6 +98,7 @@ def manager_dashboard(
     )
     report_ids = [e.id for e in reports]
 
+    # Average team rating
     avg_rating = None
     if report_ids:
         avg = db.scalar(
@@ -95,10 +108,13 @@ def manager_dashboard(
         )
         avg_rating = f"{float(avg):.1f}" if avg is not None else None
 
-    soon = date.today() + timedelta(days=90)
+    # Cert expiry alerts (within 90 days)
     cert_alerts = 0
     missing_docs = 0
+    upcoming_anniversaries = 0
+
     if report_ids:
+        soon = date.today() + timedelta(days=90)
         cert_alerts = db.scalar(
             select(func.count())
             .select_from(Certification)
@@ -106,8 +122,11 @@ def manager_dashboard(
                 Certification.employee_id.in_(report_ids),
                 Certification.expiry_date.is_not(None),
                 Certification.expiry_date <= soon,
+                Certification.expiry_date >= date.today(),
             )
         ) or 0
+
+        # Missing documents
         with_docs = set(
             db.scalars(
                 select(Document.employee_id).where(Document.employee_id.in_(report_ids))
@@ -115,11 +134,26 @@ def manager_dashboard(
         )
         missing_docs = len([rid for rid in report_ids if rid not in with_docs])
 
+        # Upcoming work anniversaries (within next 30 days)
+        today = date.today()
+        for emp in reports:
+            if emp.date_of_joining:
+                # Calculate this year's anniversary
+                try:
+                    anniversary = emp.date_of_joining.replace(year=today.year)
+                    if anniversary < today:
+                        anniversary = anniversary.replace(year=today.year + 1)
+                    if 0 <= (anniversary - today).days <= 30:
+                        upcoming_anniversaries += 1
+                except ValueError:
+                    pass  # leap year edge case
+
     return ManagerDashboardOut(
         team_members=len(reports),
         avg_team_rating=avg_rating,
         cert_expiry_alerts=cert_alerts,
         missing_documents=missing_docs,
+        upcoming_anniversaries=upcoming_anniversaries,
     )
 
 
@@ -134,6 +168,7 @@ def hr_dashboard(
         .select_from(Employee)
         .where(Employee.employment_status == "Active")
     ) or 0
+
     ninety_days_ago = date.today() - timedelta(days=90)
     new_joiners = db.scalar(
         select(func.count())
@@ -141,20 +176,56 @@ def hr_dashboard(
         .where(Employee.date_of_joining.is_not(None), Employee.date_of_joining >= ninety_days_ago)
     ) or 0
 
+    # Missing documents
     all_ids = set(db.scalars(select(Employee.id)).all())
     with_docs = set(db.scalars(select(Document.employee_id)).all())
     missing = len(all_ids - with_docs)
 
     today = date.today()
+
+    # Expired certifications
     expired = db.scalar(
         select(func.count())
         .select_from(Certification)
         .where(Certification.expiry_date.is_not(None), Certification.expiry_date < today)
     ) or 0
+
+    # Pending verifications
     pending = db.scalar(
         select(func.count())
         .select_from(Document)
         .where(Document.status == VerificationStatus.uploaded)
+    ) or 0
+
+    # Certifications expiring in 30/60/90 days
+    certs_30 = db.scalar(
+        select(func.count()).select_from(Certification).where(
+            Certification.expiry_date.is_not(None),
+            Certification.expiry_date >= today,
+            Certification.expiry_date <= today + timedelta(days=30),
+        )
+    ) or 0
+    certs_60 = db.scalar(
+        select(func.count()).select_from(Certification).where(
+            Certification.expiry_date.is_not(None),
+            Certification.expiry_date >= today,
+            Certification.expiry_date <= today + timedelta(days=60),
+        )
+    ) or 0
+    certs_90 = db.scalar(
+        select(func.count()).select_from(Certification).where(
+            Certification.expiry_date.is_not(None),
+            Certification.expiry_date >= today,
+            Certification.expiry_date <= today + timedelta(days=90),
+        )
+    ) or 0
+
+    # Recent salary revisions (last 30 days)
+    thirty_days_ago = today - timedelta(days=30)
+    recent_revisions = db.scalar(
+        select(func.count()).select_from(SalaryRevision).where(
+            SalaryRevision.effective_date >= thirty_days_ago,
+        )
     ) or 0
 
     return HrDashboardOut(
@@ -164,4 +235,8 @@ def hr_dashboard(
         employees_missing_documents=missing,
         expired_certifications=expired,
         pending_verifications=pending,
+        certs_expiring_30=certs_30,
+        certs_expiring_60=certs_60,
+        certs_expiring_90=certs_90,
+        recent_salary_revisions=recent_revisions,
     )
