@@ -3,6 +3,7 @@ import { api } from "./client";
 export interface AuditLogItem {
   id: string;
   actor_id: string | null;
+  actor_name: string | null;
   action: string;
   entity_type: string;
   entity_id: string | null;

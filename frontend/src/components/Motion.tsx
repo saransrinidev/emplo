@@ -59,7 +59,7 @@ export function StaggerItem({
   style?: React.CSSProperties;
 }) {
   return (
-    <motion.div className={className} style={style} variants={itemVariants}>
+    <motion.div className={className} style={{ height: "100%", ...style }} variants={itemVariants}>
       {children}
     </motion.div>
   );

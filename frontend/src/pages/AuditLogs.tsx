@@ -68,13 +68,11 @@ export default function AuditLogs() {
                     <td className="muted" style={{ whiteSpace: "nowrap" }}>
                       {log.created_at.slice(0, 16).replace("T", " ")}
                     </td>
-                    <td className="muted">{log.actor_id?.slice(0, 8) ?? "—"}</td>
-                    <td>{log.action}</td>
-                    <td>{log.entity_type}</td>
-                    <td className="muted">{log.entity_id?.slice(0, 8) ?? "—"}</td>
-                    <td className="muted" style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {log.changes ? JSON.stringify(log.changes) : "—"}
-                    </td>
+                    <td>{log.actor_name ?? "—"}</td>
+                    <td><span className="badge" style={{ textTransform: "capitalize" }}>{log.action.replace(/_/g, " ")}</span></td>
+                    <td style={{ textTransform: "capitalize" }}>{log.entity_type}</td>
+                    <td className="muted" style={{ fontSize: 12, fontFamily: "monospace" }}>{log.entity_id?.slice(0, 8) ?? "—"}</td>
+                    <td><ChangesCell changes={log.changes} /></td>
                   </tr>
                 ))
               )}
@@ -82,6 +80,43 @@ export default function AuditLogs() {
           </table>
         </div>
       </AsyncState>
+    </div>
+  );
+}
+
+
+// ------- Changes Cell (pretty display) -------
+
+function ChangesCell({ changes }: { changes: Record<string, unknown> | null }) {
+  if (!changes || Object.keys(changes).length === 0) {
+    return <span className="muted">—</span>;
+  }
+
+  const entries = Object.entries(changes);
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+      {entries.map(([key, value]) => (
+        <span
+          key={key}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "2px 8px",
+            fontSize: 12,
+            borderRadius: 6,
+            background: "var(--surface-hover)",
+            color: "var(--text-secondary)",
+            border: "1px solid hsl(var(--border))",
+          }}
+        >
+          <span style={{ fontWeight: 500, color: "var(--text)" }}>
+            {key.replace(/_/g, " ")}:
+          </span>
+          {String(value ?? "—")}
+        </span>
+      ))}
     </div>
   );
 }

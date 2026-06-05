@@ -54,6 +54,12 @@ def grant_permission(
         expiry_at=payload.expiry_at,
     )
     db.add(perm)
+    db.flush()
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="grant_permission", entity_type="permission",
+               entity_id=str(perm.id), changes={"employee_id": str(payload.employee_id), "section": payload.section.value})
+
     db.commit()
     db.refresh(perm)
 
@@ -93,10 +99,15 @@ def list_permissions(
 def revoke_permission(
     perm_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(RoleName.hr_admin)),
+    user: User = Depends(require_roles(RoleName.hr_admin)),
 ) -> None:
     perm = db.get(EmployeeEditPermission, perm_id)
     if perm is None:
         raise HTTPException(status_code=404, detail="Permission not found")
     perm.is_revoked = True
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="revoke_permission", entity_type="permission",
+               entity_id=str(perm.id), changes={"employee_id": str(perm.employee_id), "section": perm.section.value})
+
     db.commit()

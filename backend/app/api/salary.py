@@ -78,6 +78,12 @@ def add_revision(
 ) -> SalaryRevision:
     revision = SalaryRevision(**payload.model_dump(), created_by=user.id)
     db.add(revision)
+    db.flush()
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="add_salary_revision", entity_type="salary",
+               entity_id=str(revision.id), changes={"employee_id": str(payload.employee_id), "revised_salary": str(payload.revised_salary)})
+
     db.commit()
     db.refresh(revision)
     return revision

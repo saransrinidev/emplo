@@ -6,6 +6,7 @@ import uuid
 
 from app.api.deps import require_roles
 from app.db.session import get_db
+from app.models.employee import Employee
 from app.models.enums import RoleName
 from app.models.audit_log import AuditLog
 from app.models.user import User
@@ -17,6 +18,7 @@ class AuditLogOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     actor_id: uuid.UUID | None
+    actor_name: str | None = None
     action: str
     entity_type: str
     entity_id: str | None
@@ -36,11 +38,29 @@ def list_audit_logs(
     if entity_type:
         stmt = stmt.where(AuditLog.entity_type == entity_type)
     rows = db.scalars(stmt).all()
+
+    # Build actor name cache to avoid N+1 queries
+    actor_ids = {r.actor_id for r in rows if r.actor_id}
+    actor_names: dict[uuid.UUID, str] = {}
+    if actor_ids:
+        users = db.scalars(select(User).where(User.id.in_(actor_ids))).all()
+        for u in users:
+            if u.employee_id:
+                emp = db.get(Employee, u.employee_id)
+                actor_names[u.id] = emp.full_name if emp else u.email
+            else:
+                actor_names[u.id] = u.email
+
     return [
         AuditLogOut(
-            id=r.id, actor_id=r.actor_id, action=r.action,
-            entity_type=r.entity_type, entity_id=r.entity_id,
-            changes=r.changes, approval_status=r.approval_status,
+            id=r.id,
+            actor_id=r.actor_id,
+            actor_name=actor_names.get(r.actor_id) if r.actor_id else None,
+            action=r.action,
+            entity_type=r.entity_type,
+            entity_id=r.entity_id,
+            changes=r.changes,
+            approval_status=r.approval_status,
             created_at=str(r.created_at),
         )
         for r in rows

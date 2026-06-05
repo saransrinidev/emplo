@@ -108,12 +108,18 @@ def get_employee(
 def create_employee(
     payload: EmployeeCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(RoleName.hr_admin)),
+    user: User = Depends(require_roles(RoleName.hr_admin)),
 ) -> Employee:
     if db.scalar(select(Employee).where(Employee.employee_code == payload.employee_code)):
         raise HTTPException(status_code=400, detail="Employee code already exists")
     employee = Employee(**payload.model_dump())
     db.add(employee)
+    db.flush()
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="create", entity_type="employee",
+               entity_id=str(employee.id), changes={"full_name": employee.full_name, "email": employee.email})
+
     db.commit()
     db.refresh(employee)
     return employee
@@ -275,12 +281,16 @@ def create_login_for_employee(
 def delete_employee(
     employee_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(RoleName.hr_admin)),
+    user: User = Depends(require_roles(RoleName.hr_admin)),
 ) -> None:
     """Delete an employee record and their linked user account if any."""
     employee = db.get(Employee, employee_id)
     if employee is None:
         raise HTTPException(status_code=404, detail="Employee not found")
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="terminate", entity_type="employee",
+               entity_id=str(employee.id), changes={"full_name": employee.full_name, "email": employee.email})
 
     # Delete linked user account if exists
     linked_user = db.scalar(select(User).where(User.employee_id == employee.id))
@@ -302,7 +312,7 @@ def change_employee_role(
     employee_id: uuid.UUID,
     payload: ChangeRoleRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(RoleName.hr_admin)),
+    actor: User = Depends(require_roles(RoleName.hr_admin)),
 ) -> UserAccountOut:
     """Change the login role of an employee (promote/demote)."""
     employee = db.get(Employee, employee_id)
@@ -313,11 +323,17 @@ def change_employee_role(
     if not user:
         raise HTTPException(status_code=400, detail="Employee has no login account")
 
+    old_role = user.role.name.value
     role = db.scalar(select(Role).where(Role.name == payload.role))
     if role is None:
         raise HTTPException(status_code=400, detail="Role not found")
 
     user.role_id = role.id
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=actor.id, action="change_role", entity_type="employee",
+               entity_id=str(employee.id), changes={"from": old_role, "to": payload.role.value})
+
     db.commit()
     db.refresh(user)
 

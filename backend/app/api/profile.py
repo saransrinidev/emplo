@@ -117,6 +117,11 @@ def update_phone(
     if emp is None:
         raise HTTPException(status_code=404, detail="Employee not found")
     emp.mobile_number = payload.mobile_number
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="update_phone", entity_type="employee",
+               entity_id=str(emp.id), changes={"mobile_number": payload.mobile_number})
+
     db.commit()
     db.refresh(emp)
     return _build_profile(db, emp)
@@ -163,6 +168,10 @@ def update_address(
     address.state = payload.state
     address.postal_code = payload.postal_code
     address.country = payload.country
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="update_address", entity_type="employee",
+               entity_id=str(emp.id), changes={"address_type": payload.address_type.value, "city": payload.city})
 
     db.commit()
     db.refresh(emp)

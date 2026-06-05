@@ -64,6 +64,12 @@ def add_certification(
     data = payload.model_dump(exclude={"employee_id"})
     cert = Certification(employee_id=target_employee_id, **data)
     db.add(cert)
+    db.flush()
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="add_certification", entity_type="certification",
+               entity_id=str(cert.id), changes={"certificate_name": cert.certificate_name})
+
     db.commit()
     db.refresh(cert)
 
@@ -88,13 +94,19 @@ def update_certification(
     cert_id: uuid.UUID,
     payload: CertificationUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(RoleName.hr_admin)),
+    user: User = Depends(require_roles(RoleName.hr_admin)),
 ) -> Certification:
     cert = db.get(Certification, cert_id)
     if cert is None:
         raise HTTPException(status_code=404, detail="Certification not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    for field, value in changes.items():
         setattr(cert, field, value)
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="verify_certification", entity_type="certification",
+               entity_id=str(cert.id), changes=changes)
+
     db.commit()
     db.refresh(cert)
     return cert

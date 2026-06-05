@@ -65,6 +65,12 @@ def add_review(
 
     review = PerformanceReview(**data)
     db.add(review)
+    db.flush()
+
+    from app.api.audit_helper import log_action
+    log_action(db, actor_id=user.id, action="add_performance_review", entity_type="performance",
+               entity_id=str(review.id), changes={"employee_id": str(payload.employee_id), "rating": data.get("rating")})
+
     db.commit()
     db.refresh(review)
 

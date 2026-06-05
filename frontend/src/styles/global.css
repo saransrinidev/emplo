@@ -324,6 +324,7 @@ select.input {
 
 .grid-cards {
   grid-template-columns: repeat(4, 1fr);
+  align-items: stretch;
 }
 
 @media (max-width: 1100px) {
@@ -355,6 +356,7 @@ select.input {
   background: var(--surface);
   padding: 20px;
   min-height: 120px;
+  height: 100%;
   overflow: hidden;
   transition: box-shadow 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo), border-color 0.3s ease;
 }
@@ -934,6 +936,7 @@ select.input {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -1631,7 +1634,7 @@ select.input {
 
   .stat-card {
     padding: 16px 14px;
-    min-height: 100px;
+    min-height: 0;
     gap: 10px;
   }
 
@@ -1756,7 +1759,7 @@ select.input {
 
   .stat-card {
     padding: 14px 12px;
-    min-height: auto;
+    min-height: 0;
   }
 
   .stat-value {

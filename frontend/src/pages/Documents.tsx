@@ -22,9 +22,12 @@ export default function Documents() {
   const [uploadType, setUploadType] = useState<string | null>(null);
   const [viewDoc, setViewDoc] = useState<DocumentItem | null>(null);
 
-  // Get document status for each required type
+  // Get the latest document for each required type
   function getDocForType(type: string): DocumentItem | undefined {
-    return documents.find((d) => d.document_type === type);
+    const matches = documents.filter((d) => d.document_type === type);
+    if (matches.length === 0) return undefined;
+    // Return the most recently uploaded one
+    return matches.sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   }
 
   // Other documents (type = "other")
