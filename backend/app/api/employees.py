@@ -112,6 +112,8 @@ def create_employee(
 ) -> Employee:
     if db.scalar(select(Employee).where(Employee.employee_code == payload.employee_code)):
         raise HTTPException(status_code=400, detail="Employee code already exists")
+    if payload.manager_id is not None and db.get(Employee, payload.manager_id) is None:
+        raise HTTPException(status_code=400, detail="Manager not found")
     employee = Employee(**payload.model_dump())
     db.add(employee)
     db.flush()
@@ -210,7 +212,14 @@ def update_employee(
     employee = db.get(Employee, employee_id)
     if employee is None:
         raise HTTPException(status_code=404, detail="Employee not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    new_manager_id = updates.get("manager_id")
+    if "manager_id" in updates and new_manager_id is not None:
+        if new_manager_id == employee.id:
+            raise HTTPException(status_code=400, detail="An employee cannot be their own manager")
+        if db.get(Employee, new_manager_id) is None:
+            raise HTTPException(status_code=400, detail="Manager not found")
+    for field, value in updates.items():
         setattr(employee, field, value)
     db.commit()
     db.refresh(employee)

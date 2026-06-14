@@ -8,7 +8,7 @@ export interface SalaryRevision {
   revised_salary: string;
   revision_percentage: string | null;
   comments: string | null;
-  approval_status: string;
+  approval_status: "pending" | "approved" | "rejected";
 }
 
 export interface CurrentSalary {
@@ -25,6 +25,7 @@ export const salaryApi = {
     api.get<CurrentSalary>(
       `/salary/current${employeeId ? `?employee_id=${employeeId}` : ""}`,
     ),
+  pending: () => api.get<SalaryRevision[]>("/salary/pending"),
   addRevision: (data: {
     employee_id: string;
     effective_date: string;
@@ -32,6 +33,9 @@ export const salaryApi = {
     revised_salary: string;
     revision_percentage?: string;
     comments?: string;
-    approval_status?: string;
   }) => api.post<SalaryRevision>("/salary/revisions", data),
+  approve: (revisionId: string) =>
+    api.put<SalaryRevision>(`/salary/revisions/${revisionId}/approve`),
+  reject: (revisionId: string) =>
+    api.put<SalaryRevision>(`/salary/revisions/${revisionId}/reject`),
 };

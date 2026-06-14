@@ -7,6 +7,7 @@ import {
   Award,
   DollarSign,
   TrendingUp,
+  CalendarDays,
   Bell,
   Users,
   GitBranch,
@@ -65,6 +66,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "Performance",
     icon: <TrendingUp />,
     roles: ["employee", "manager"],
+  },
+  {
+    to: "/attendance",
+    label: "Attendance",
+    icon: <CalendarDays />,
+    roles: ["employee", "manager", "hr_admin"],
   },
   {
     to: "/notifications",

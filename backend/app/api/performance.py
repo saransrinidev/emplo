@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -60,6 +60,10 @@ def add_review(
 ) -> PerformanceReviewOut:
     # Set reviewer_id to the HR's employee_id if not provided
     data = payload.model_dump()
+    if db.get(Employee, payload.employee_id) is None:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    if data.get("reviewer_id") and db.get(Employee, data["reviewer_id"]) is None:
+        raise HTTPException(status_code=400, detail="Reviewer not found")
     if not data.get("reviewer_id") and user.employee_id:
         data["reviewer_id"] = user.employee_id
 

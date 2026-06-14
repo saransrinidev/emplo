@@ -4,16 +4,25 @@ from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
 from app.api import (
+    attendance,
+    attendance_records,
     audit,
     auth,
+    bank_accounts,
     certifications,
     dashboard,
+    departments,
     documents,
+    edit_requests,
     employees,
+    holidays,
+    leave_management,
     notifications,
+    password_reset,
     performance,
     permissions,
     profile,
+    profile_changes,
     salary,
     upload,
 )
@@ -49,8 +58,16 @@ def health_db(db: Session = Depends(get_db)) -> dict:
 
 app.include_router(health_router)
 app.include_router(auth.router)
+app.include_router(password_reset.router)
+app.include_router(attendance.router)
+app.include_router(attendance_records.router)
 app.include_router(profile.router)
 app.include_router(employees.router)
+app.include_router(departments.router)
+app.include_router(leave_management.router)
+app.include_router(holidays.router)
+app.include_router(bank_accounts.router)
+app.include_router(profile_changes.router)
 app.include_router(documents.router)
 app.include_router(certifications.router)
 app.include_router(salary.router)
@@ -58,5 +75,6 @@ app.include_router(performance.router)
 app.include_router(dashboard.router)
 app.include_router(notifications.router)
 app.include_router(permissions.router)
+app.include_router(edit_requests.router)
 app.include_router(audit.router)
 app.include_router(upload.router)

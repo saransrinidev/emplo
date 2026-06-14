@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
+import Attendance from "./pages/Attendance";
 import AuditLogs from "./pages/AuditLogs";
 import Certifications from "./pages/Certifications";
 import Dashboard from "./pages/Dashboard";
@@ -30,6 +31,9 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/notifications" element={<Notifications />} />
+
+        {/* All roles - Attendance */}
+        <Route path="/attendance" element={<Attendance />} />
 
         {/* Employee + Manager only */}
         <Route path="/documents" element={<RoleGuard allowed={["employee", "manager"]}><Documents /></RoleGuard>} />

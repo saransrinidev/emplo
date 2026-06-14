@@ -14,7 +14,6 @@ class SalaryRevisionCreate(BaseModel):
     revised_salary: Decimal
     revision_percentage: Decimal | None = None
     comments: str | None = None
-    approval_status: ApprovalStatus = ApprovalStatus.approved
 
 
 class SalaryRevisionOut(BaseModel):

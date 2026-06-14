@@ -64,3 +64,8 @@ class Employee(Base, UUIDMixin, TimestampMixin):
     edit_permissions: Mapped[list["EmployeeEditPermission"]] = relationship(  # noqa: F821
         back_populates="employee", cascade="all, delete-orphan"
     )
+    leave_requests: Mapped[list["LeaveRequest"]] = relationship(  # noqa: F821
+        back_populates="employee",
+        foreign_keys="LeaveRequest.employee_id",
+        cascade="all, delete-orphan",
+    )

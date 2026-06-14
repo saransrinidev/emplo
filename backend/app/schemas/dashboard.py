@@ -34,3 +34,18 @@ class HrDashboardOut(BaseModel):
     certs_expiring_60: int = 0
     certs_expiring_90: int = 0
     recent_salary_revisions: int = 0
+
+
+class DepartmentStat(BaseModel):
+    department: str
+    count: int
+
+
+class AnalyticsOut(BaseModel):
+    total_employees: int = 0
+    active_employees: int = 0
+    attrition_rate: float = 0.0  # % terminated/resigned in last 12 months
+    avg_tenure_months: float = 0.0
+    department_distribution: list[DepartmentStat] = []
+    monthly_joiners: list[dict] = []  # [{month: "2025-01", count: N}]
+    gender_distribution: list[dict] = []  # [{gender: "male", count: N}]

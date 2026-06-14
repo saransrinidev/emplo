@@ -45,3 +45,19 @@ class EditableSection(str, enum.Enum):
     address = "address"
     phone = "phone"
     certifications = "certifications"
+
+
+class LeaveType(str, enum.Enum):
+    casual = "casual"
+    sick = "sick"
+    earned = "earned"
+    maternity = "maternity"
+    paternity = "paternity"
+    unpaid = "unpaid"
+
+
+class LeaveStatus(str, enum.Enum):
+    pending = "pending"             # just submitted by employee
+    forwarded_to_hr = "forwarded_to_hr"  # manager approved, sent to HR
+    approved = "approved"           # HR approved
+    rejected = "rejected"           # rejected at any stage

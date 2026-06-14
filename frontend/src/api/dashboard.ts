@@ -36,3 +36,23 @@ export const dashboardApi = {
   manager: () => api.get<ManagerDashboard>("/dashboard/manager"),
   hr: () => api.get<HrDashboard>("/dashboard/hr"),
 };
+
+
+export interface DepartmentStat {
+  department: string;
+  count: number;
+}
+
+export interface Analytics {
+  total_employees: number;
+  active_employees: number;
+  attrition_rate: number;
+  avg_tenure_months: number;
+  department_distribution: DepartmentStat[];
+  monthly_joiners: { month: string; count: number }[];
+  gender_distribution: { gender: string; count: number }[];
+}
+
+export const analyticsApi = {
+  get: () => api.get<Analytics>("/dashboard/analytics"),
+};

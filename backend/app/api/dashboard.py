@@ -240,3 +240,92 @@ def hr_dashboard(
         certs_expiring_90=certs_90,
         recent_salary_revisions=recent_revisions,
     )
+
+
+from app.schemas.dashboard import AnalyticsOut, DepartmentStat
+
+
+@router.get("/analytics", response_model=AnalyticsOut)
+def analytics(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RoleName.hr_admin)),
+) -> AnalyticsOut:
+    """Org-wide analytics: headcount, attrition, tenure, department breakdown."""
+    total = db.scalar(select(func.count()).select_from(Employee)) or 0
+    active = db.scalar(
+        select(func.count()).select_from(Employee)
+        .where(Employee.employment_status.in_(["Active", "active", None]))
+    ) or 0
+
+    # Attrition: employees with status 'terminated' or 'resigned' in last 12 months
+    one_year_ago = date.today() - timedelta(days=365)
+    left = db.scalar(
+        select(func.count()).select_from(Employee)
+        .where(Employee.employment_status.in_(["Terminated", "terminated", "Resigned", "resigned"]))
+    ) or 0
+    attrition_rate = round((left / total * 100), 1) if total > 0 else 0.0
+
+    # Avg tenure
+    today = date.today()
+    employees_with_doj = list(
+        db.scalars(select(Employee.date_of_joining).where(Employee.date_of_joining.is_not(None)))
+    )
+    avg_tenure = 0.0
+    if employees_with_doj:
+        tenures = [(today - doj).days / 30 for doj in employees_with_doj]
+        avg_tenure = round(sum(tenures) / len(tenures), 1)
+
+    # Department distribution
+    dept_rows = db.execute(
+        select(Employee.department, func.count())
+        .where(Employee.department.is_not(None))
+        .group_by(Employee.department)
+        .order_by(func.count().desc())
+    ).all()
+    department_distribution = [DepartmentStat(department=r[0], count=r[1]) for r in dept_rows]
+
+    # Monthly joiners (last 12 months)
+    monthly_joiners = []
+    for i in range(12):
+        # Calculate month start by simple subtraction
+        m = today.month - i
+        y = today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        month_start = date(y, m, 1)
+        # Next month start
+        nm = m + 1
+        ny = y
+        if nm > 12:
+            nm = 1
+            ny += 1
+        month_end = date(ny, nm, 1) - timedelta(days=1)
+        count = db.scalar(
+            select(func.count()).select_from(Employee)
+            .where(
+                Employee.date_of_joining.is_not(None),
+                Employee.date_of_joining >= month_start,
+                Employee.date_of_joining <= month_end,
+            )
+        ) or 0
+        monthly_joiners.append({"month": month_start.strftime("%Y-%m"), "count": count})
+    monthly_joiners.reverse()
+
+    # Gender distribution
+    gender_rows = db.execute(
+        select(Employee.gender, func.count())
+        .where(Employee.gender.is_not(None))
+        .group_by(Employee.gender)
+    ).all()
+    gender_distribution = [{"gender": r[0], "count": r[1]} for r in gender_rows]
+
+    return AnalyticsOut(
+        total_employees=total,
+        active_employees=active,
+        attrition_rate=attrition_rate,
+        avg_tenure_months=avg_tenure,
+        department_distribution=department_distribution,
+        monthly_joiners=monthly_joiners,
+        gender_distribution=gender_distribution,
+    )

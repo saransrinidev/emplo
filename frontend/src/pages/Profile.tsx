@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Pencil, ShieldCheck } from "lucide-react";
+import { Pencil, ShieldCheck, Clock, Send } from "lucide-react";
 import { profileApi, type Address, type Profile as ProfileType, type EditableSections } from "../api/profile";
+import { editRequestsApi, type EditRequest } from "../api/editRequests";
 import { ApiError } from "../api/client";
 import AsyncState from "../components/AsyncState";
 import PageHeader from "../components/PageHeader";
@@ -10,21 +11,44 @@ function Section({
   rows,
   editable,
   onEdit,
+  canRequest,
+  onRequestEdit,
+  pendingRequest,
 }: {
   title: string;
   rows: [string, string][];
   editable?: boolean;
   onEdit?: () => void;
+  canRequest?: boolean;
+  onRequestEdit?: () => void;
+  pendingRequest?: EditRequest | null;
 }) {
   return (
     <div className="card">
       <div className="row" style={{ marginBottom: 16 }}>
         <h2>{title}</h2>
-        {editable && (
-          <button className="btn btn-outline btn-sm" onClick={onEdit}>
-            <Pencil size={14} /> Edit
-          </button>
-        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          {editable && (
+            <button className="btn btn-outline btn-sm" onClick={onEdit}>
+              <Pencil size={14} /> Edit
+            </button>
+          )}
+          {!editable && canRequest && !pendingRequest && (
+            <button className="btn btn-outline btn-sm" onClick={onRequestEdit}>
+              <Send size={14} /> Request Edit
+            </button>
+          )}
+          {pendingRequest && pendingRequest.status === "pending" && (
+            <span className="badge badge-warning" style={{ fontSize: 12 }}>
+              <Clock size={12} /> Request Pending
+            </span>
+          )}
+          {pendingRequest && pendingRequest.status === "approved" && (
+            <span className="badge badge-info" style={{ fontSize: 12 }}>
+              <Clock size={12} /> Edit Window Open
+            </span>
+          )}
+        </div>
       </div>
       <div className="detail-grid">
         {rows.map(([label, value]) => (
@@ -48,17 +72,21 @@ function formatAddress(a: Address | undefined): string {
 export default function Profile() {
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [perms, setPerms] = useState<EditableSections>({ phone: false, address: false, certifications: false });
+  const [editReqs, setEditReqs] = useState<EditRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editPhone, setEditPhone] = useState(false);
   const [editAddress, setEditAddress] = useState(false);
+  const [requestModal, setRequestModal] = useState<string | null>(null); // section name
+  const [submitModal, setSubmitModal] = useState<EditRequest | null>(null);
 
   const load = () => {
     setLoading(true);
-    Promise.all([profileApi.get(), profileApi.editableSections()])
-      .then(([p, e]) => {
+    Promise.all([profileApi.get(), profileApi.editableSections(), editRequestsApi.my()])
+      .then(([p, e, reqs]) => {
         setProfile(p);
         setPerms(e);
+        setEditReqs(reqs);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load profile."))
       .finally(() => setLoading(false));
@@ -69,6 +97,36 @@ export default function Profile() {
   }, []);
 
   const hasAnyPermission = perms.phone || perms.address || perms.certifications;
+
+  const getActiveRequest = (section: string) => {
+    return editReqs.find(
+      (r) => r.section === section && ["pending", "approved", "changes_submitted"].includes(r.status)
+    ) || null;
+  };
+
+  const handleRequestEdit = async (section: string, reason: string) => {
+    try {
+      await editRequestsApi.create({ section, reason });
+      setRequestModal(null);
+      load();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const handleSubmitChanges = async (req: EditRequest) => {
+    // Capture what was changed — get fresh profile
+    const freshProfile = await profileApi.get();
+    let data: Record<string, unknown> = {};
+    if (req.section === "phone") {
+      data = { mobile_number: freshProfile.mobile_number };
+    } else if (req.section === "address") {
+      data = { addresses: freshProfile.addresses };
+    }
+    await editRequestsApi.submitChanges(req.id, data);
+    setSubmitModal(null);
+    load();
+  };
 
   return (
     <div>
@@ -93,6 +151,19 @@ export default function Profile() {
                       .join(", ")}
                     . This access will expire automatically.
                   </p>
+                  {/* Show submit button for approved requests */}
+                  {editReqs
+                    .filter((r) => r.status === "approved")
+                    .map((r) => (
+                      <button
+                        key={r.id}
+                        className="btn btn-sm"
+                        style={{ marginTop: 8 }}
+                        onClick={() => setSubmitModal(r)}
+                      >
+                        ✓ Submit {r.section} changes for HR confirmation
+                      </button>
+                    ))}
                 </div>
               </div>
             )}
@@ -101,6 +172,9 @@ export default function Profile() {
               title="Personal Information"
               editable={perms.phone}
               onEdit={() => setEditPhone(true)}
+              canRequest={!perms.phone}
+              onRequestEdit={() => setRequestModal("phone")}
+              pendingRequest={getActiveRequest("phone")}
               rows={[
                 ["Employee ID", profile.employee_code],
                 ["Full Name", profile.full_name],
@@ -126,6 +200,9 @@ export default function Profile() {
               title="Address & Emergency Contact"
               editable={perms.address}
               onEdit={() => setEditAddress(true)}
+              canRequest={!perms.address}
+              onRequestEdit={() => setRequestModal("address")}
+              pendingRequest={getActiveRequest("address")}
               rows={[
                 ["Current Address", formatAddress(profile.addresses.find((a) => a.address_type === "current"))],
                 ["Permanent Address", formatAddress(profile.addresses.find((a) => a.address_type === "permanent"))],
@@ -154,6 +231,22 @@ export default function Profile() {
                   setProfile(updated);
                   setEditAddress(false);
                 }}
+              />
+            )}
+
+            {requestModal && (
+              <RequestEditModal
+                section={requestModal}
+                onClose={() => setRequestModal(null)}
+                onSubmit={handleRequestEdit}
+              />
+            )}
+
+            {submitModal && (
+              <SubmitChangesModal
+                request={submitModal}
+                onClose={() => setSubmitModal(null)}
+                onSubmit={() => handleSubmitChanges(submitModal)}
               />
             )}
           </div>
@@ -315,6 +408,125 @@ function EditAddressModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+
+// ------- Request Edit Access Modal -------
+
+function RequestEditModal({
+  section,
+  onClose,
+  onSubmit,
+}: {
+  section: string;
+  onClose: () => void;
+  onSubmit: (section: string, reason: string) => Promise<void>;
+}) {
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      await onSubmit(section, reason);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to submit request.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Request Edit Access</h2>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit} style={{ padding: 20 }}>
+          <p style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
+            You're requesting permission to edit your <strong>{section}</strong> details.
+            HR will review your request and grant a time-limited edit window.
+          </p>
+          <div className="field">
+            <label>Reason (optional)</label>
+            <textarea
+              className="input"
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g., I moved to a new address, need to update my contact info"
+            />
+          </div>
+          {error && <p className="error-text" style={{ marginBottom: 12 }}>{error}</p>}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-sm" disabled={submitting}>
+              {submitting ? "Sending…" : "Send Request"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ------- Submit Changes Confirmation Modal -------
+
+function SubmitChangesModal({
+  request,
+  onClose,
+  onSubmit,
+}: {
+  request: EditRequest;
+  onClose: () => void;
+  onSubmit: () => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      await onSubmit();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to submit changes.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const windowEnd = request.window_end ? new Date(request.window_end).toLocaleString() : "N/A";
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Submit Changes for Confirmation</h2>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          <p style={{ marginBottom: 8, color: "var(--text-secondary)" }}>
+            Are you done editing your <strong>{request.section}</strong>? Your changes will be sent to HR for final confirmation.
+          </p>
+          <p style={{ marginBottom: 16, fontSize: 13, color: "var(--text-tertiary)" }}>
+            Edit window expires: {windowEnd}
+          </p>
+          {error && <p className="error-text" style={{ marginBottom: 12 }}>{error}</p>}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button className="btn btn-outline btn-sm" onClick={onClose}>Keep Editing</button>
+            <button className="btn btn-sm" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "Submitting…" : "Submit for Confirmation"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
