@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Users,
   UserCheck,
@@ -30,7 +30,6 @@ import { certificationsApi, type Certification } from "../api/certifications";
 import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import { StaggerContainer, StaggerItem, FadeIn, PageTransition } from "../components/Motion";
-import PageHeader from "../components/PageHeader";
 import { useApi } from "../hooks/useApi";
 
 interface StatProps {
@@ -38,21 +37,28 @@ interface StatProps {
   value: string;
   icon: React.ReactNode;
   subtitle?: string;
+  description?: string;
   clickable?: boolean;
   to?: string;
+  variant?: "indigo" | "green" | "blue" | "amber" | "rose" | "orange" | "pink" | "yellow";
+  bgClass?: string;
 }
 
-function Stat({ title, value, icon, subtitle, clickable, to }: StatProps) {
+function Stat({ title, value, icon, subtitle, description, clickable, to, variant = "indigo", bgClass }: StatProps) {
   const content = (
-    <div className={`stat-card ${clickable ? "stat-card-clickable" : ""}`}>
-      <div className="stat-icon">{icon}</div>
-      <div className="stat-content">
-        <div className="stat-label">{title}</div>
-        <div className="stat-value">{value}</div>
-        {subtitle && <div className="stat-subtitle">{subtitle}</div>}
-        <div className="stat-accent" />
+    <div className={`stat-card-new stat-variant-${variant} ${bgClass || ""} ${clickable ? "stat-card-new-clickable" : ""}`}>
+      <div className="stat-icon-wrapper">{icon}</div>
+      <div className="stat-info-container">
+        <div className="stat-label-row">
+          <span className="stat-label-new">{title}</span>
+          {subtitle && <span className="stat-badge-new">{subtitle}</span>}
+        </div>
+        <div className="stat-value-row">
+          <span className="stat-value-new">{value}</span>
+        </div>
+        {description && <span className="stat-subtitle-new">{description}</span>}
       </div>
-      {clickable && <ChevronRight size={18} className="stat-chevron" />}
+      {clickable && <ChevronRight size={18} className="stat-chevron-new" />}
     </div>
   );
   if (to) return <Link to={to} style={{ textDecoration: "none" }}>{content}</Link>;
@@ -63,6 +69,110 @@ function money(value: string | null): string {
   if (!value) return "—";
   const n = Number(value);
   return Number.isNaN(n) ? value : `₹${n.toLocaleString()}`;
+}
+
+const WelcomeIllustration = () => (
+  <svg width="180" height="120" viewBox="0 0 180 120" fill="none" style={{ display: "block" }}>
+    {/* Decorative background shapes with opacity */}
+    <circle cx="110" cy="65" r="45" fill="var(--primary-color)" opacity="0.12" />
+    <circle cx="130" cy="50" r="25" fill="var(--primary-color)" opacity="0.18" />
+    
+    {/* Floor/desk base */}
+    <path d="M30 100H150" stroke="var(--primary-color)" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
+    
+    {/* Potted Plant */}
+    <rect x="42" y="82" width="12" height="18" rx="2" fill="#f97316" />
+    <path d="M40 82H56" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" />
+    <path d="M48 82C44 74 41 78 43 70C45 62 48 66 48 82Z" fill="#22c55e" />
+    <path d="M48 82C52 74 55 78 53 70C51 62 48 66 48 82Z" fill="#15803d" />
+    <path d="M48 82C40 76 43 73 37 68C31 63 38 67 48 82Z" fill="#4ade80" />
+
+    {/* Laptop */}
+    <rect x="110" y="82" width="32" height="18" rx="2" fill="#cbd5e1" />
+    <path d="M104 100H148" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" />
+    <rect x="114" y="85" width="24" height="12" rx="1" fill="#f8fafc" />
+    <circle cx="126" cy="91" r="3" fill="#6366f1" opacity="0.8" />
+    <line x1="117" y1="88" x2="127" y2="88" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="117" y1="94" x2="123" y2="94" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" />
+    
+    {/* Person */}
+    <path d="M78 100C78 90 85 82 94 82H102C111 82 118 90 118 100V100H78V100Z" fill="var(--primary-color)" />
+    <rect x="94" y="74" width="8" height="8" fill="#fed7aa" />
+    <circle cx="98" cy="65" r="11" fill="#fed7aa" />
+    <path d="M87 65C87 59 92 54 98 54C104 54 109 59 109 65C109 66 108 67 106 67C104 67 103 65 98 65C93 65 92 67 90 67C88 67 87 66 87 65Z" fill="#334155" />
+    <rect x="94" y="52" width="8" height="6" rx="3" fill="#334155" />
+    <path d="M84 97L106 91" stroke="#fed7aa" strokeWidth="3.5" strokeLinecap="round" />
+  </svg>
+);
+
+function WelcomeBanner({ taskCount }: { taskCount?: number }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  if (!user) return null;
+
+  const hours = new Date().getHours();
+  let greetingWord = "Good morning";
+  if (hours >= 12 && hours < 17) {
+    greetingWord = "Good afternoon";
+  } else if (hours >= 17 && hours < 22) {
+    greetingWord = "Good evening";
+  } else if (hours >= 22 || hours < 4) {
+    greetingWord = "Good night";
+  }
+
+  const formattedDate = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+
+  // Determine button target and text based on role
+  let btnText = "View My Tasks";
+  let btnTarget = "/notifications";
+  if (user.role === "employee") {
+    btnText = "View My Tasks";
+    btnTarget = "/certifications";
+  } else if (user.role === "hr_admin") {
+    btnText = "View My Tasks";
+    btnTarget = "/notifications";
+  } else if (user.role === "manager") {
+    btnText = "View Team Alerts";
+    btnTarget = "/notifications";
+  }
+
+  const hasTasks = taskCount !== undefined && taskCount > 0;
+  const subtitleText = hasTasks
+    ? `Welcome back! You have ${taskCount} task${taskCount > 1 ? "s" : ""} to complete today.`
+    : "Welcome back! Your portal is up to date and running fine.";
+
+  return (
+    <div className="welcome-banner">
+      {/* Decorative backdrop shapes */}
+      <div className="welcome-banner-circle welcome-banner-circle-1" />
+      <div className="welcome-banner-circle welcome-banner-circle-2" />
+      <div className="welcome-banner-circle welcome-banner-circle-3" />
+
+      <div className="welcome-banner-content">
+        <span className="welcome-banner-date">{formattedDate}</span>
+        <h1 className="welcome-banner-title" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {greetingWord}, {user.name}! <span className="hand-wave-emoji">👋</span>
+        </h1>
+        <p className="welcome-banner-subtitle">
+          {subtitleText}
+        </p>
+        <button
+          className="welcome-banner-btn"
+          onClick={() => navigate(btnTarget)}
+        >
+          {btnText} <ArrowRight size={14} style={{ marginLeft: 6 }} />
+        </button>
+      </div>
+      <div className="welcome-banner-graphic">
+        <WelcomeIllustration />
+      </div>
+    </div>
+  );
 }
 
 /* Upcoming Reminders */
@@ -229,14 +339,6 @@ function RecentNotifications() {
   );
 }
 
-function todayFormatted(): string {
-  return new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
-}
-
 /* Employee Dashboard */
 function EmployeeDashboard() {
   const { data, loading, error } = useApi(
@@ -247,69 +349,43 @@ function EmployeeDashboard() {
   return (
     <AsyncState loading={loading} error={error}>
       {data && (
-        <div className="dashboard-grid">
-          <StaggerContainer className="grid grid-cards">
-            <StaggerItem><Stat title="Designation" value={data.designation ?? "—"} icon={<Briefcase />} /></StaggerItem>
-            <StaggerItem><Stat title="Date of Joining" value={data.date_of_joining ?? "—"} icon={<Calendar />} /></StaggerItem>
-            <StaggerItem><Stat title="Current Salary" value={money(data.current_salary)} icon={<DollarSign />} /></StaggerItem>
-            <StaggerItem>
-              <Stat
-                title="Latest Rating"
-                value={data.latest_rating ? `${data.latest_rating} / 5` : "—"}
-                icon={<Star />}
-              />
-            </StaggerItem>
-          </StaggerContainer>
+        <>
+          <WelcomeBanner taskCount={data.expiring_soon} />
+          <div className="dashboard-grid">
+            <StaggerContainer className="grid grid-cards">
+              <StaggerItem><Stat title="Designation" value={data.designation ?? "—"} icon={<Briefcase />} variant="indigo" bgClass="bg-briefcase" description="Your current role" /></StaggerItem>
+              <StaggerItem><Stat title="Date of Joining" value={data.date_of_joining ?? "—"} icon={<Calendar />} variant="blue" bgClass="bg-calendar" description="When you joined the company" /></StaggerItem>
+              <StaggerItem><Stat title="Current Salary" value={money(data.current_salary)} icon={<DollarSign />} variant="green" bgClass="bg-salary" description="Your current compensation" /></StaggerItem>
+              <StaggerItem><Stat title="Latest Rating" value={data.latest_rating ? `${data.latest_rating} / 5` : "—"} icon={<Star />} variant="yellow" bgClass="bg-star" description="From your last performance review" /></StaggerItem>
+              <StaggerItem><Stat title="Reporting To" value={data.manager_name ?? "None"} icon={<Users />} variant="indigo" bgClass="bg-users" description="Your manager" /></StaggerItem>
+              <StaggerItem><Stat title="Certifications" value={String(data.certification_count)} subtitle="Total" icon={<Award />} clickable to="/certifications" variant="pink" bgClass="bg-award" description="Total certificates earned" /></StaggerItem>
+              <StaggerItem><Stat title="Expiring Soon" value={String(data.expiring_soon)} subtitle="Within 90 days" icon={<AlertTriangle />} clickable to="/certifications" variant="amber" bgClass="bg-alert" description="Certificates requiring renewal" /></StaggerItem>
+            </StaggerContainer>
 
-          <StaggerContainer className="grid grid-cards" delay={0.3}>
-            <StaggerItem>
-              <Stat title="Reporting To" value={data.manager_name ?? "None"} icon={<Users />} />
-            </StaggerItem>
-            <StaggerItem>
-              <Stat
-                title="Certifications"
-                value={String(data.certification_count)}
-                subtitle="Total"
-                icon={<Award />}
-                clickable
-                to="/certifications"
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <Stat
-                title="Expiring Soon"
-                value={String(data.expiring_soon)}
-                subtitle="Within 90 days"
-                icon={<AlertTriangle />}
-                clickable
-                to="/certifications"
-              />
-            </StaggerItem>
-          </StaggerContainer>
+            <FadeIn delay={0.5} className="dashboard-columns">
+              <UpcomingReminders />
+              <RecentNotifications />
+            </FadeIn>
 
-          <FadeIn delay={0.5} className="dashboard-columns">
-            <UpcomingReminders />
-            <RecentNotifications />
-          </FadeIn>
-
-          <FadeIn delay={0.7}>
-            <div className="info-banner">
-              <div className="info-banner-icon">
-                <BellRing size={32} />
+            <FadeIn delay={0.7}>
+              <div className="info-banner">
+                <div className="info-banner-icon">
+                  <BellRing size={32} />
+                </div>
+                <div className="info-banner-content">
+                  <h4>Stay Informed</h4>
+                  <p>
+                    Enable notifications to stay updated on important announcements,
+                    policy changes, and deadlines.
+                  </p>
+                </div>
+                <Link to="/notifications" className="btn info-banner-btn">
+                  Enable Notifications
+                </Link>
               </div>
-              <div className="info-banner-content">
-                <h4>Stay Informed</h4>
-                <p>
-                  Enable notifications to stay updated on important announcements,
-                  policy changes, and deadlines.
-                </p>
-              </div>
-              <Link to="/notifications" className="btn info-banner-btn">
-                Enable Notifications
-              </Link>
-            </div>
-          </FadeIn>
-        </div>
+            </FadeIn>
+          </div>
+        </>
       )}
     </AsyncState>
   );
@@ -325,30 +401,23 @@ function ManagerDashboard() {
   return (
     <AsyncState loading={loading} error={error}>
       {data && (
-        <div className="dashboard-grid">
-          <StaggerContainer className="grid grid-cards">
-            <StaggerItem><Stat title="Team Members" value={String(data.team_members)} icon={<Users />} /></StaggerItem>
-            <StaggerItem><Stat title="Avg Team Rating" value={data.avg_team_rating ?? "—"} icon={<Star />} /></StaggerItem>
-            <StaggerItem><Stat title="Cert Expiry Alerts" value={String(data.cert_expiry_alerts)} icon={<AlertTriangle />} /></StaggerItem>
-            <StaggerItem><Stat title="Missing Documents" value={String(data.missing_documents)} icon={<FileWarning />} /></StaggerItem>
-          </StaggerContainer>
+        <>
+          <WelcomeBanner taskCount={data.cert_expiry_alerts + data.missing_documents} />
+          <div className="dashboard-grid">
+            <StaggerContainer className="grid grid-cards">
+              <StaggerItem><Stat title="Team Members" value={String(data.team_members)} icon={<Users />} variant="indigo" bgClass="bg-users" description="Employees reporting to you" /></StaggerItem>
+              <StaggerItem><Stat title="Avg Team Rating" value={data.avg_team_rating ?? "—"} icon={<Star />} variant="yellow" bgClass="bg-star" description="Average rating of direct reports" /></StaggerItem>
+              <StaggerItem><Stat title="Cert Expiry Alerts" value={String(data.cert_expiry_alerts)} icon={<AlertTriangle />} variant="amber" bgClass="bg-alert" description="Certs expiring in next 90 days" /></StaggerItem>
+              <StaggerItem><Stat title="Missing Documents" value={String(data.missing_documents)} icon={<FileWarning />} variant="rose" bgClass="bg-document" description="Documents requiring attention" /></StaggerItem>
+              <StaggerItem><Stat title="Work Anniversaries" value={String(data.upcoming_anniversaries)} subtitle="Next 30 days" icon={<Calendar />} variant="blue" bgClass="bg-calendar" description="Upcoming in next 30 days" /></StaggerItem>
+            </StaggerContainer>
 
-          <StaggerContainer className="grid grid-cards" delay={0.3}>
-            <StaggerItem>
-              <Stat
-                title="Work Anniversaries"
-                value={String(data.upcoming_anniversaries)}
-                subtitle="Next 30 days"
-                icon={<Calendar />}
-              />
-            </StaggerItem>
-          </StaggerContainer>
-
-          <FadeIn delay={0.5} className="dashboard-columns">
-            <UpcomingReminders />
-            <RecentNotifications />
-          </FadeIn>
-        </div>
+            <FadeIn delay={0.5} className="dashboard-columns">
+              <UpcomingReminders />
+              <RecentNotifications />
+            </FadeIn>
+          </div>
+        </>
       )}
     </AsyncState>
   );
@@ -364,29 +433,26 @@ function HrDashboard() {
   return (
     <AsyncState loading={loading} error={error}>
       {data && (
-        <div className="dashboard-grid">
-          <StaggerContainer className="grid grid-cards">
-            <StaggerItem><Stat title="Total Employees" value={String(data.total_employees)} icon={<Users />} /></StaggerItem>
-            <StaggerItem><Stat title="Active Employees" value={String(data.active_employees)} icon={<UserCheck />} /></StaggerItem>
-            <StaggerItem><Stat title="New Joiners" value={String(data.new_joiners)} subtitle="Last 90 days" icon={<UserPlus />} /></StaggerItem>
-            <StaggerItem><Stat title="Missing Documents" value={String(data.employees_missing_documents)} icon={<FileWarning />} /></StaggerItem>
-          </StaggerContainer>
+        <>
+          <WelcomeBanner taskCount={data.pending_verifications + data.employees_missing_documents} />
+          <div className="dashboard-grid">
+            <StaggerContainer className="grid grid-cards">
+              <StaggerItem><Stat title="Total Employees" value={String(data.total_employees)} icon={<Users />} variant="indigo" bgClass="bg-total-employees" description="All employees in the organization" /></StaggerItem>
+              <StaggerItem><Stat title="Active Employees" value={String(data.active_employees)} icon={<UserCheck />} variant="green" bgClass="bg-active-employees" description="Currently active employees" /></StaggerItem>
+              <StaggerItem><Stat title="New Joiners" value={String(data.new_joiners)} subtitle="Last 90 days" icon={<UserPlus />} variant="blue" bgClass="bg-new-joiners" description="New employees joined recently" /></StaggerItem>
+              <StaggerItem><Stat title="Missing Documents" value={String(data.employees_missing_documents)} icon={<FileWarning />} variant="rose" bgClass="bg-missing-documents" description="Documents require attention" /></StaggerItem>
+              <StaggerItem><Stat title="Expired Certs" value={String(data.expired_certifications)} icon={<ShieldAlert />} variant="rose" bgClass="bg-expired-certs" description="Certificates already expired" /></StaggerItem>
+              <StaggerItem><Stat title="Pending Verifications" value={String(data.pending_verifications)} icon={<Clock />} variant="amber" bgClass="bg-pending-verifications" description="Awaiting verification" /></StaggerItem>
+              <StaggerItem><Stat title="Certifications Expiring in 30d" value={String(data.certs_expiring_30)} icon={<Timer />} variant="pink" bgClass="bg-certs-30" description="Certificates expiring soon" /></StaggerItem>
+              <StaggerItem><Stat title="Certifications Expiring in 90d" value={String(data.certs_expiring_90)} icon={<AlertTriangle />} variant="yellow" bgClass="bg-certs-90" description="Certifications expiring soon" /></StaggerItem>
+              <StaggerItem><Stat title="Recent Salary Revisions" value={String(data.recent_salary_revisions)} subtitle="Last 30 days" icon={<Banknote />} variant="blue" bgClass="bg-salary-revisions" description="Salary revisions in the last 30 days" /></StaggerItem>
+            </StaggerContainer>
 
-          <StaggerContainer className="grid grid-cards" delay={0.3}>
-            <StaggerItem><Stat title="Expired Certs" value={String(data.expired_certifications)} icon={<ShieldAlert />} /></StaggerItem>
-            <StaggerItem><Stat title="Pending Verifications" value={String(data.pending_verifications)} icon={<Clock />} /></StaggerItem>
-            <StaggerItem><Stat title="Expiring in 30d" value={String(data.certs_expiring_30)} subtitle="Certifications" icon={<Timer />} /></StaggerItem>
-            <StaggerItem><Stat title="Expiring in 90d" value={String(data.certs_expiring_90)} subtitle="Certifications" icon={<AlertTriangle />} /></StaggerItem>
-          </StaggerContainer>
-
-          <StaggerContainer className="grid grid-cards" delay={0.5}>
-            <StaggerItem><Stat title="Recent Salary Revisions" value={String(data.recent_salary_revisions)} subtitle="Last 30 days" icon={<Banknote />} /></StaggerItem>
-          </StaggerContainer>
-
-          <FadeIn delay={0.6} className="dashboard-columns">
-            <RecentNotifications />
-          </FadeIn>
-        </div>
+            <FadeIn delay={0.6} className="dashboard-columns">
+              <RecentNotifications />
+            </FadeIn>
+          </div>
+        </>
       )}
     </AsyncState>
   );
@@ -399,11 +465,6 @@ export default function Dashboard() {
   return (
     <PageTransition>
       <div className="dashboard-page">
-        <PageHeader
-          title={`Welcome back, ${user.name} 👋`}
-          subtitle="Here's an overview of your portal."
-          actions={<span className="muted" style={{ fontSize: 13 }}>{todayFormatted()}</span>}
-        />
         {user.role === "employee" && <EmployeeDashboard />}
         {user.role === "manager" && <ManagerDashboard />}
         {user.role === "hr_admin" && <HrDashboard />}

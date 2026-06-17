@@ -4,6 +4,7 @@ import { employeesApi, type Employee, type EmployeeCreate, type EmployeeWithRole
 import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/PageHeader";
+import { Eye, Trash2, UserCheck, Shield, Key, Search, Grid, List, Briefcase, Activity, ChevronDown } from "lucide-react";
 
 const EMPTY_FORM: EmployeeCreate = {
   employee_code: "",
@@ -21,6 +22,51 @@ const EMPTY_FORM: EmployeeCreate = {
   initial_salary: undefined,
 };
 
+function EmployeeAvatar({ name, email, size = 36 }: { name: string; email: string; size?: number }) {
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "EE";
+
+  // Hash email to get a consistent color variant
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = email.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colors = [
+    { bg: "rgba(99, 102, 241, 0.12)", color: "#6366f1" }, // indigo
+    { bg: "rgba(59, 130, 246, 0.12)", color: "#3b82f6" },  // blue
+    { bg: "rgba(16, 185, 129, 0.12)", color: "#10b981" },  // green
+    { bg: "rgba(245, 158, 11, 0.12)", color: "#f59e0b" },  // amber
+    { bg: "rgba(244, 63, 94, 0.12)", color: "#f43f5e" },   // rose
+    { bg: "rgba(139, 92, 246, 0.12)", color: "#8b5cf6" },  // purple
+  ];
+  const { bg, color } = colors[Math.abs(hash) % colors.length];
+
+  return (
+    <div
+      className="emp-avatar-circle"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: bg,
+        color: color,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: size * 0.36,
+        fontWeight: 600,
+        flexShrink: 0,
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 export default function Employees() {
   const { user } = useAuth();
   const isHr = user?.role === "hr_admin";
@@ -34,6 +80,9 @@ export default function Employees() {
   const [terminateTarget, setTerminateTarget] = useState<EmployeeWithRole | null>(null);
   const [assignManagerTarget, setAssignManagerTarget] = useState<EmployeeWithRole | null>(null);
   const [changeRoleTarget, setChangeRoleTarget] = useState<EmployeeWithRole | null>(null);
+  
+  // Custom View Mode: Grid (default) or Table
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
   // Search & filter
   const [search, setSearch] = useState("");
@@ -89,6 +138,12 @@ export default function Employees() {
   // Unique departments and statuses for filter dropdowns
   const departments = [...new Set(employees.map((e) => e.department).filter(Boolean))] as string[];
   const statuses = [...new Set(employees.map((e) => e.employment_status).filter(Boolean))] as string[];
+
+  // Statistics
+  const totalCount = employees.length;
+  const activeCount = employees.filter((e) => e.employment_status === "Active").length;
+  const leaveCount = employees.filter((e) => e.employment_status === "On Leave").length;
+  const deptCount = departments.length;
 
   // Select/deselect
   const toggleSelect = (id: string) => {
@@ -231,140 +286,327 @@ export default function Employees() {
 
       {!loading && !error && (
         <>
-          {/* Search & Filters Bar */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-            <input
-              className="input"
-              style={{ maxWidth: 280, flex: 1 }}
-              placeholder="Search by name, email, code..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {isHr && (
-              <select className="input" style={{ maxWidth: 140 }} value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
-                <option value="">All Roles</option>
-                <option value="hr_admin">HR Admin</option>
-                <option value="manager">Manager</option>
-                <option value="employee">Employee</option>
-              </select>
-            )}
-            <select className="input" style={{ maxWidth: 160 }} value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
-              <option value="">All Departments</option>
-              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <select className="input" style={{ maxWidth: 140 }} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-              <option value="">All Status</option>
-              {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            {isHr && selected.size > 0 && (
-              <button className="btn btn-sm btn-destructive" onClick={() => setShowBulkConfirm(true)}>
-                Delete ({selected.size})
-              </button>
-            )}
+          {/* Quick Metrics summary widgets */}
+          <div className="employee-stats-grid">
+            <div className="emp-stat-mini-card">
+              <span className="emp-stat-mini-label">Total Employees</span>
+              <span className="emp-stat-mini-value">{totalCount}</span>
+            </div>
+            <div className="emp-stat-mini-card">
+              <span className="emp-stat-mini-label">Active Staff</span>
+              <span className="emp-stat-mini-value" style={{ color: "#10b981" }}>{activeCount}</span>
+            </div>
+            <div className="emp-stat-mini-card">
+              <span className="emp-stat-mini-label">On Leave</span>
+              <span className="emp-stat-mini-value" style={{ color: "#f59e0b" }}>{leaveCount}</span>
+            </div>
+            <div className="emp-stat-mini-card">
+              <span className="emp-stat-mini-label">Departments</span>
+              <span className="emp-stat-mini-value" style={{ color: "#6366f1" }}>{deptCount}</span>
+            </div>
           </div>
 
-          <div className="card" style={{ padding: 0 }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  {isHr && (
-                    <th style={{ width: 40 }}>
-                      <input
-                        type="checkbox"
-                        checked={filtered.length > 0 && selected.size === filtered.length}
-                        onChange={toggleSelectAll}
-                        style={{ cursor: "pointer" }}
-                      />
-                    </th>
-                  )}
-                  <th>Employee</th>
-                  <th>Code</th>
-                  <th>Role</th>
-                  <th>Department</th>
-                  <th>Designation</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={isHr ? 8 : 7} className="muted" style={{ textAlign: "center" }}>
-                    {employees.length === 0 ? "No employees yet. Add one to get started." : "No employees match your filters."}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((emp) => (
-                  <tr key={emp.id}>
+          {/* Search & Filters Bar */}
+          <div className="filter-bar-card">
+            <div className="search-input-wrapper">
+              <Search size={16} className="search-icon-inside" />
+              <input
+                className="input search-bar-input"
+                placeholder="Search name, email, code..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="filters-right">
+              {isHr && (
+                <div className="filter-item-wrapper" title="Filter by Role">
+                  <span className="filter-item-icon">
+                    <Shield size={16} />
+                  </span>
+                  <span className="filter-item-label">Role:</span>
+                  <span className="filter-item-value">
+                    {filterRole === "hr_admin" ? "HR Admin" : filterRole === "manager" ? "Manager" : filterRole === "employee" ? "Employee" : "All"}
+                  </span>
+                  <ChevronDown size={14} style={{ color: "var(--text-muted)", marginLeft: 4 }} />
+                  <select className="filter-native-select" value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
+                    <option value="">All Roles</option>
+                    <option value="hr_admin">HR Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="employee">Employee</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="filter-item-wrapper" title="Filter by Department">
+                <span className="filter-item-icon">
+                  <Briefcase size={16} />
+                </span>
+                <span className="filter-item-label">Dept:</span>
+                <span className="filter-item-value">
+                  {filterDept || "All"}
+                </span>
+                <ChevronDown size={14} style={{ color: "var(--text-muted)", marginLeft: 4 }} />
+                <select className="filter-native-select" value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
+                  <option value="">All Departments</option>
+                  {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+
+              <div className="filter-item-wrapper" title="Filter by Status">
+                <span className="filter-item-icon">
+                  <Activity size={16} />
+                </span>
+                <span className="filter-item-label">Status:</span>
+                <span className="filter-item-value">
+                  {filterStatus || "All"}
+                </span>
+                <ChevronDown size={14} style={{ color: "var(--text-muted)", marginLeft: 4 }} />
+                <select className="filter-native-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                  <option value="">All Statuses</option>
+                  {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              
+              {/* Grid/Table View Mode Selector Toggle */}
+              <div className="view-mode-switcher">
+                <button
+                  className={`view-mode-btn ${viewMode === "grid" ? "active" : ""}`}
+                  onClick={() => setViewMode("grid")}
+                  title="Grid View"
+                >
+                  <Grid size={16} />
+                </button>
+                <button
+                  className={`view-mode-btn ${viewMode === "table" ? "active" : ""}`}
+                  onClick={() => setViewMode("table")}
+                  title="Table View"
+                >
+                  <List size={16} />
+                </button>
+              </div>
+
+              {isHr && selected.size > 0 && (
+                <button className="btn btn-destructive btn-sm" onClick={() => setShowBulkConfirm(true)}>
+                  Delete ({selected.size})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Table list or Grid Cards list based on viewMode selection */}
+          {viewMode === "table" ? (
+            <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+              <table className="table" style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
                     {isHr && (
-                      <td style={{ width: 40 }}>
+                      <th style={{ width: 40, paddingLeft: 20 }}>
                         <input
                           type="checkbox"
-                          checked={selected.has(emp.id)}
-                          onChange={() => toggleSelect(emp.id)}
+                          checked={filtered.length > 0 && selected.size === filtered.length}
+                          onChange={toggleSelectAll}
                           style={{ cursor: "pointer" }}
                         />
-                      </td>
+                      </th>
                     )}
-                    <td>
-                      <div>{emp.full_name}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>{emp.email}</div>
-                    </td>
-                    <td className="muted">{emp.employee_code}</td>
-                    <td><RoleBadge role={emp.role} /></td>
-                    <td className="muted">{emp.department ?? "—"}</td>
-                    <td className="muted">{emp.designation ?? "—"}</td>
-                    <td><span className="badge">{emp.employment_status ?? "—"}</span></td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      {isHr && !emp.role && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ marginRight: 6 }}
-                          onClick={() => setLoginModal(emp)}
-                        >
-                          Create Login
-                        </button>
-                      )}
-                      {isHr && emp.role && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ marginRight: 6 }}
-                          onClick={() => setChangeRoleTarget(emp)}
-                        >
-                          Change Role
-                        </button>
-                      )}
-                      {isHr && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ marginRight: 6 }}
-                          onClick={() => setAssignManagerTarget(emp)}
-                        >
-                          Assign Manager
-                        </button>
-                      )}
-                      <button
-                        className="btn btn-outline btn-sm"
-                        style={{ marginRight: 6 }}
-                        onClick={() => navigate(`/employees/${emp.id}`)}
-                      >
-                        View
-                      </button>
-                      {isHr && (
-                        <button
-                          className="btn btn-sm btn-destructive"
-                          onClick={() => setTerminateTarget(emp)}
-                        >
-                          Terminate
-                        </button>
-                      )}
-                    </td>
+                    <th style={{ paddingLeft: isHr ? 0 : 20 }}>Employee</th>
+                    <th>Code</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Designation</th>
+                    <th>Status</th>
+                    <th style={{ width: 180 }}></th>
                   </tr>
-                ))
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={isHr ? 8 : 7} className="muted" style={{ textAlign: "center", padding: 32 }}>
+                        {employees.length === 0 ? "No employees yet. Add one to get started." : "No employees match your filters."}
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((emp) => (
+                      <tr key={emp.id}>
+                        {isHr && (
+                          <td style={{ width: 40, paddingLeft: 20 }}>
+                            <input
+                              type="checkbox"
+                              checked={selected.has(emp.id)}
+                              onChange={() => toggleSelect(emp.id)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </td>
+                        )}
+                        <td style={{ paddingLeft: isHr ? 0 : 20 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <EmployeeAvatar name={emp.full_name} email={emp.email} />
+                            <div>
+                              <div style={{ fontWeight: 600, color: "var(--text)" }}>{emp.full_name}</div>
+                              <div className="muted" style={{ fontSize: 12 }}>{emp.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="muted">{emp.employee_code}</td>
+                        <td><RoleBadge role={emp.role} /></td>
+                        <td className="muted">{emp.department ?? "—"}</td>
+                        <td className="muted">{emp.designation ?? "—"}</td>
+                        <td><StatusBadge status={emp.employment_status} /></td>
+                        <td style={{ paddingRight: 20 }}>
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+                            {isHr && !emp.role && (
+                              <button
+                                className="btn btn-outline btn-icon-sm"
+                                title="Create Login"
+                                onClick={() => setLoginModal(emp)}
+                              >
+                                <Key size={14} />
+                              </button>
+                            )}
+                            {isHr && emp.role && (
+                              <button
+                                className="btn btn-outline btn-icon-sm"
+                                title="Change Role"
+                                onClick={() => setChangeRoleTarget(emp)}
+                              >
+                                <Shield size={14} />
+                              </button>
+                            )}
+                            {isHr && (
+                              <button
+                                className="btn btn-outline btn-icon-sm"
+                                title="Assign Manager"
+                                onClick={() => setAssignManagerTarget(emp)}
+                              >
+                                <UserCheck size={14} />
+                              </button>
+                            )}
+                            <button
+                              className="btn btn-outline btn-icon-sm"
+                              title="View Profile"
+                              onClick={() => navigate(`/employees/${emp.id}`)}
+                            >
+                              <Eye size={14} />
+                            </button>
+                            {isHr && (
+                              <button
+                                className="btn-destructive-light"
+                                title="Terminate Employee"
+                                onClick={() => setTerminateTarget(emp)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            // Grid Cards View
+            <div>
+              {filtered.length === 0 ? (
+                <div className="card muted" style={{ textAlign: "center", padding: 48 }}>
+                  {employees.length === 0 ? "No employees yet. Add one to get started." : "No employees match your filters."}
+                </div>
+              ) : (
+                <div className="employee-cards-grid">
+                  {filtered.map((emp) => {
+                    const isSelected = selected.has(emp.id);
+                    return (
+                      <div key={emp.id} className={`employee-card-item ${isSelected ? "employee-card-selected" : ""}`}>
+                        {isHr && (
+                          <div className="emp-card-checkbox-wrapper">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelect(emp.id)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </div>
+                        )}
+                        <div className="emp-card-header" onClick={() => navigate(`/employees/${emp.id}`)} style={{ cursor: "pointer" }}>
+                          <EmployeeAvatar name={emp.full_name} email={emp.email} size={48} />
+                          <div className="emp-card-names">
+                            <h3 className="emp-card-fullname">{emp.full_name}</h3>
+                            <span className="emp-card-code">{emp.employee_code}</span>
+                          </div>
+                        </div>
+                        <div className="emp-card-body" onClick={() => navigate(`/employees/${emp.id}`)} style={{ cursor: "pointer" }}>
+                          <div className="emp-card-detail">
+                            <span className="emp-card-label">Email</span>
+                            <span className="emp-card-val text-truncate" title={emp.email}>{emp.email}</span>
+                          </div>
+                          <div className="emp-card-detail">
+                            <span className="emp-card-label">Department</span>
+                            <span className="emp-card-val">{emp.department ?? "—"}</span>
+                          </div>
+                          <div className="emp-card-detail">
+                            <span className="emp-card-label">Designation</span>
+                            <span className="emp-card-val text-truncate" title={emp.designation ?? ""}>{emp.designation ?? "—"}</span>
+                          </div>
+                          <div className="emp-card-badges-row">
+                            <RoleBadge role={emp.role} />
+                            <StatusBadge status={emp.employment_status} />
+                          </div>
+                        </div>
+                        <div className="emp-card-footer">
+                          <div style={{ display: "flex", justifyContent: "center", gap: 8, width: "100%" }}>
+                            {isHr && !emp.role && (
+                              <button
+                                className="btn btn-outline btn-icon-sm"
+                                title="Create Login"
+                                onClick={() => setLoginModal(emp)}
+                              >
+                                <Key size={14} />
+                              </button>
+                            )}
+                            {isHr && emp.role && (
+                              <button
+                                className="btn btn-outline btn-icon-sm"
+                                title="Change Role"
+                                onClick={() => setChangeRoleTarget(emp)}
+                              >
+                                <Shield size={14} />
+                              </button>
+                            )}
+                            {isHr && (
+                              <button
+                                className="btn btn-outline btn-icon-sm"
+                                title="Assign Manager"
+                                onClick={() => setAssignManagerTarget(emp)}
+                              >
+                                <UserCheck size={14} />
+                              </button>
+                            )}
+                            <button
+                              className="btn btn-outline btn-icon-sm"
+                              title="View Profile"
+                              onClick={() => navigate(`/employees/${emp.id}`)}
+                            >
+                              <Eye size={14} />
+                            </button>
+                            {isHr && (
+                              <button
+                                className="btn-destructive-light"
+                                title="Terminate Employee"
+                                onClick={() => setTerminateTarget(emp)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -375,19 +617,30 @@ export default function Employees() {
 
 function RoleBadge({ role }: { role: string | null }) {
   if (!role) {
-    return <span className="badge" style={{ opacity: 0.6, fontSize: 11 }}>No login</span>;
+    return <span className="badge" style={{ background: "rgba(255, 255, 255, 0.04)", color: "var(--text-muted)", fontSize: 11 }}>No login</span>;
   }
   const styles: Record<string, { bg: string; color: string; label: string }> = {
-    hr_admin: { bg: "hsl(280 60% 94%)", color: "hsl(280 60% 40%)", label: "HR Admin" },
-    manager: { bg: "hsl(210 80% 93%)", color: "hsl(210 80% 35%)", label: "Manager" },
-    employee: { bg: "hsl(142 60% 93%)", color: "hsl(142 60% 30%)", label: "Employee" },
+    hr_admin: { bg: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", label: "HR Admin" },
+    manager: { bg: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", label: "Manager" },
+    employee: { bg: "rgba(16, 185, 129, 0.1)", color: "#10b981", label: "Employee" },
   };
   const s = styles[role] ?? styles.employee;
   return (
-    <span className="badge" style={{ background: s.bg, color: s.color, borderColor: "transparent", fontSize: 12 }}>
+    <span className="badge" style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}2b`, fontSize: 12, fontWeight: 500 }}>
       {s.label}
     </span>
   );
+}
+
+// ------- Status Badge -------
+
+function StatusBadge({ status }: { status: string | null }) {
+  const val = status ?? "Active";
+  let colorClass = "badge-status-active";
+  if (val === "Inactive" || val === "Terminated") colorClass = "badge-status-terminated";
+  if (val === "On Leave") colorClass = "badge-status-leave";
+
+  return <span className={`badge ${colorClass}`}>{val}</span>;
 }
 
 // ------- Terminate Confirmation Modal -------
