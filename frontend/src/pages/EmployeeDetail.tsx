@@ -12,9 +12,12 @@ import type { VerificationStatus } from "../api/types";
 import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
+import Breadcrumbs from "../components/Breadcrumbs";
 import ImageModal from "../components/ImageModal";
 import PageHeader from "../components/PageHeader";
+import Skeleton from "../components/Skeleton";
 import StatusBadge from "../components/StatusBadge";
+import { useToast } from "../components/Toast";
 import { useApi } from "../hooks/useApi";
 
 type Tab = "profile" | "documents" | "certifications" | "salary" | "performance" | "permissions";
@@ -47,6 +50,10 @@ export default function EmployeeDetail() {
 
   return (
     <div>
+      <Breadcrumbs items={[
+        { label: "Employees", to: "/employees" },
+        { label: emp?.full_name ?? "Employee" },
+      ]} />
       <PageHeader
         title={emp?.full_name ?? "Employee"}
         subtitle={emp ? `${emp.employee_code} · ${emp.department ?? ""}` : ""}
@@ -56,6 +63,17 @@ export default function EmployeeDetail() {
           </button>
         }
       />
+      {loading && (
+        <div className="stack">
+          <Skeleton.PageHeader />
+          <div className="grid grid-cards">
+            <Skeleton.Stat />
+            <Skeleton.Stat />
+            <Skeleton.Stat />
+          </div>
+          <Skeleton.Table rows={4} cols={3} />
+        </div>
+      )}
       <AsyncState loading={loading} error={error}>
         {emp && (
           <>

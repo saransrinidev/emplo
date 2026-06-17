@@ -106,6 +106,8 @@ def add_revision(
     emp = db.get(Employee, payload.employee_id)
     if emp is None:
         raise HTTPException(status_code=404, detail="Employee not found")
+    if payload.revised_salary <= 0:
+        raise HTTPException(status_code=400, detail="Revised salary must be greater than zero")
 
     data = payload.model_dump()
 

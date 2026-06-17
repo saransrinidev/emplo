@@ -156,13 +156,15 @@ function RecentNotifications() {
       .finally(() => setLoading(false));
   }, []);
 
-  function getIcon(title: string) {
+  function getAccent(title: string): { color: string; icon: React.ReactNode } {
     const lower = title.toLowerCase();
-    if (lower.includes("approved") || lower.includes("verified"))
-      return <CheckCircle2 size={16} className="notif-icon notif-icon-success" />;
-    if (lower.includes("rejected") || lower.includes("expired"))
-      return <XCircle size={16} className="notif-icon notif-icon-danger" />;
-    return <Info size={16} className="notif-icon notif-icon-info" />;
+    if (lower.includes("approved") || lower.includes("verified") || lower.includes("confirmed"))
+      return { color: "hsl(var(--success))", icon: <CheckCircle2 size={16} /> };
+    if (lower.includes("rejected") || lower.includes("expired") || lower.includes("reverted"))
+      return { color: "hsl(var(--destructive))", icon: <XCircle size={16} /> };
+    if (lower.includes("submitted") || lower.includes("request") || lower.includes("forwarded"))
+      return { color: "hsl(var(--warning, 45 93% 47%))", icon: <Clock size={16} /> };
+    return { color: "var(--primary-color)", icon: <Bell size={16} /> };
   }
 
   function timeAgo(dateStr: string): string {
@@ -173,7 +175,9 @@ function RecentNotifications() {
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }
 
   return (
@@ -195,16 +199,31 @@ function RecentNotifications() {
             <p>No recent activity</p>
           </div>
         )}
-        {notifications.map((n) => (
-          <div key={n.id} className={`notif-item ${n.is_read ? "" : "notif-unread"}`}>
-            {getIcon(n.title)}
-            <div className="notif-content">
-              <div className="notif-title">{n.title}</div>
-              <div className="notif-message">{n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "")}</div>
-            </div>
-            <div className="notif-time">{timeAgo(n.created_at)}</div>
+        {!loading && notifications.length > 0 && (
+          <div className="activity-timeline">
+            {notifications.map((n, idx) => {
+              const { color, icon } = getAccent(n.title);
+              const cleanMsg = n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "");
+              return (
+                <div key={n.id} className={`activity-item ${!n.is_read ? "activity-unread" : ""}`}>
+                  <div className="activity-indicator">
+                    <div className="activity-dot" style={{ background: color, boxShadow: `0 0 0 3px ${color}20` }}>
+                      {icon}
+                    </div>
+                    {idx < notifications.length - 1 && <div className="activity-line" />}
+                  </div>
+                  <div className="activity-content">
+                    <div className="activity-header">
+                      <span className="activity-title">{n.title}</span>
+                      <span className="activity-time">{timeAgo(n.created_at)}</span>
+                    </div>
+                    <p className="activity-message">{cleanMsg}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

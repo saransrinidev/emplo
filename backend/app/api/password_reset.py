@@ -7,11 +7,12 @@ Flow:
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.rate_limit import limiter
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.password_reset import PasswordResetToken
@@ -37,7 +38,9 @@ class ResetResponse(BaseModel):
 
 
 @router.post("/request", response_model=ResetResponse)
+@limiter.limit("3/minute")
 def request_reset(
+    request: Request,
     payload: ResetRequest,
     db: Session = Depends(get_db),
 ) -> ResetResponse:

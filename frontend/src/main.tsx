@@ -5,7 +5,9 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SidebarProvider } from "./context/SidebarContext";
+import { ToastProvider } from "./components/Toast";
 import "./styles/global.css";
+import "./styles/components.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -13,7 +15,9 @@ createRoot(document.getElementById("root")!).render(
       <ThemeProvider>
         <SidebarProvider>
           <AuthProvider>
-            <App />
+            <ToastProvider>
+              <App />
+            </ToastProvider>
           </AuthProvider>
         </SidebarProvider>
       </ThemeProvider>

@@ -32,7 +32,9 @@ def list_employees(
             | Employee.email.ilike(like)
         )
     # Managers see only their direct reports.
-    if user.role.name == RoleName.manager and user.employee_id:
+    if user.role.name == RoleName.manager:
+        if not user.employee_id:
+            raise HTTPException(status_code=400, detail="Manager has no employee record linked")
         stmt = stmt.where(Employee.manager_id == user.employee_id)
     return list(db.scalars(stmt).all())
 
@@ -189,6 +191,7 @@ def bulk_import_employees(
                     try:
                         emp_data[date_field] = date_type.fromisoformat(val)
                     except ValueError:
+                        errors.append(f"{row_label}: Invalid date format for {date_field}: '{val}' (use YYYY-MM-DD)")
                         emp_data[date_field] = None
 
             employee = Employee(**emp_data)

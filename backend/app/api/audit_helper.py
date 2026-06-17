@@ -3,6 +3,7 @@ import uuid
 
 from sqlalchemy.orm import Session
 
+from app.core.middleware import request_ip, request_user_agent
 from app.models.audit_log import AuditLog
 
 
@@ -19,13 +20,20 @@ def log_action(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> None:
-    """Write an audit log entry. Call this after any significant action.
+    """Write an audit log entry. Automatically captures IP and User-Agent
+    from the request context if not explicitly provided.
 
     Parameters:
         changes: legacy field for quick diff summaries
         before_data: full snapshot of the entity before the change
         after_data: full snapshot of the entity after the change
     """
+    # Auto-capture from middleware context if not provided
+    if ip_address is None:
+        ip_address = request_ip.get(None)
+    if user_agent is None:
+        user_agent = request_user_agent.get(None)
+
     entry = AuditLog(
         actor_id=actor_id,
         action=action,

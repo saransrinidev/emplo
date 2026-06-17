@@ -10,6 +10,7 @@ import Documents from "./pages/Documents";
 import EmployeeDetail from "./pages/EmployeeDetail";
 import Employees from "./pages/Employees";
 import Login from "./pages/Login";
+import MyRequests from "./pages/MyRequests";
 import Notifications from "./pages/Notifications";
 import OrgChart from "./pages/OrgChart";
 import Performance from "./pages/Performance";
@@ -30,6 +31,7 @@ export default function App() {
         {/* All roles */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/my-requests" element={<MyRequests />} />
         <Route path="/notifications" element={<Notifications />} />
 
         {/* All roles - Attendance */}

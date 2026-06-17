@@ -1,10 +1,8 @@
 """Employee bank account management.
 
-Account numbers are stored in an obfuscated form (simple base64 for now;
-swap with KMS-based encryption in production). API responses only show
-the last 4 digits.
+Account numbers are encrypted using Fernet (AES-128-CBC) before storage.
+API responses only show the last 4 digits (masked).
 """
-import base64
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_roles
+from app.core.encryption import encrypt, mask_account_number
 from app.db.session import get_db
 from app.models.bank_account import EmployeeBankAccount
 from app.models.employee import Employee
@@ -22,27 +21,13 @@ from app.schemas.bank_account import BankAccountCreate, BankAccountOut, BankAcco
 router = APIRouter(prefix="/bank-accounts", tags=["bank-accounts"])
 
 
-def _encrypt(plain: str) -> str:
-    """Placeholder encryption - encode to base64. Replace with real encryption."""
-    return base64.b64encode(plain.encode()).decode()
-
-
-def _mask(encrypted: str) -> str:
-    """Show only last 4 chars of the original account number."""
-    try:
-        plain = base64.b64decode(encrypted.encode()).decode()
-    except Exception:
-        plain = encrypted
-    return "XXXX" + plain[-4:] if len(plain) >= 4 else "XXXX"
-
-
 def _to_out(acct: EmployeeBankAccount) -> BankAccountOut:
     return BankAccountOut(
         id=acct.id,
         employee_id=acct.employee_id,
         account_holder_name=acct.account_holder_name,
         bank_name=acct.bank_name,
-        account_number_masked=_mask(acct.account_number_enc),
+        account_number_masked=mask_account_number(acct.account_number_enc),
         ifsc_swift_code=acct.ifsc_swift_code,
         branch=acct.branch,
         is_primary=acct.is_primary,
@@ -79,7 +64,7 @@ def add_bank_account(
         employee_id=payload.employee_id,
         account_holder_name=payload.account_holder_name,
         bank_name=payload.bank_name,
-        account_number_enc=_encrypt(payload.account_number),
+        account_number_enc=encrypt(payload.account_number),
         ifsc_swift_code=payload.ifsc_swift_code,
         branch=payload.branch,
         is_primary=payload.is_primary,
@@ -102,7 +87,7 @@ def update_bank_account(
         raise HTTPException(404, "Bank account not found")
     updates = payload.model_dump(exclude_unset=True)
     if "account_number" in updates:
-        acct.account_number_enc = _encrypt(updates.pop("account_number"))
+        acct.account_number_enc = encrypt(updates.pop("account_number"))
     for field, value in updates.items():
         setattr(acct, field, value)
     db.commit()
