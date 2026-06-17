@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { BellRing } from "lucide-react";
+import { 
+  BellRing, User, Briefcase, Calendar, MapPin, ChevronLeft,
+  Mail, Phone, Cake, Users, Hash, Award, Activity, FileText
+} from "lucide-react";
 import { employeesApi, type Employee } from "../api/employees";
 import { certificationsApi } from "../api/certifications";
 import { documentsApi, type DocumentItem } from "../api/documents";
@@ -13,7 +16,6 @@ import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import ImageModal from "../components/ImageModal";
-import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import { useApi } from "../hooks/useApi";
 
@@ -23,6 +25,96 @@ type Tab = "profile" | "documents" | "certifications" | "salary" | "performance"
 const EMPLOYEE_ALERT_TABS: Tab[] = ["profile", "documents", "certifications"];
 // Tabs that send alerts only to manager
 const MANAGER_ALERT_TABS: Tab[] = ["salary", "performance", "permissions"];
+
+// ------- Redesign Helper Components -------
+
+
+
+function Section({
+  title,
+  rows,
+  icon,
+  iconVariant = "indigo",
+}: {
+  title: string;
+  rows: [string, string][];
+  icon?: React.ReactNode;
+  iconVariant?: "indigo" | "blue" | "orange";
+}) {
+  const getFieldIcon = (label: string) => {
+    const cleanLabel = label.toLowerCase();
+    if (cleanLabel.includes("name")) return <User size={14} />;
+    if (cleanLabel.includes("email")) return <Mail size={14} />;
+    if (cleanLabel.includes("mobile") || cleanLabel.includes("phone")) return <Phone size={14} />;
+    if (cleanLabel.includes("birth")) return <Cake size={14} />;
+    if (cleanLabel.includes("gender")) return <User size={14} />;
+    if (cleanLabel.includes("marital")) return <Users size={14} />;
+    if (cleanLabel.includes("location") || cleanLabel.includes("address")) return <MapPin size={14} />;
+    if (cleanLabel.includes("id") || cleanLabel.includes("code")) return <Hash size={14} />;
+    if (cleanLabel.includes("joining") || cleanLabel.includes("date")) return <Calendar size={14} />;
+    if (cleanLabel.includes("dept") || cleanLabel.includes("department")) return <Briefcase size={14} />;
+    if (cleanLabel.includes("designation")) return <Award size={14} />;
+    if (cleanLabel.includes("status")) return <Activity size={14} />;
+    return <FileText size={14} />;
+  };
+
+  return (
+    <div className="card" style={{ padding: 24 }}>
+      <div className="row" style={{ marginBottom: 20, display: "flex", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {icon && (
+            <div 
+              className={`section-title-icon section-title-${iconVariant}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: iconVariant === "indigo" ? "rgba(99, 102, 241, 0.12)" : "rgba(59, 130, 246, 0.12)",
+                color: iconVariant === "indigo" ? "#6366f1" : "#3b82f6"
+              }}
+            >
+              {icon}
+            </div>
+          )}
+          <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>{title}</h2>
+        </div>
+      </div>
+      <div className="info-chips-grid">
+        {rows.map(([label, value]) => {
+          const isStatusActive = value === "Active";
+          const isStatusLeave = value === "On Leave";
+          const isStatusTerminated = value === "Terminated";
+          
+          let valueStyle: React.CSSProperties = {};
+          if (isStatusActive) {
+            valueStyle = { color: "#10b981", fontWeight: 700 };
+          } else if (isStatusLeave) {
+            valueStyle = { color: "#f59e0b", fontWeight: 700 };
+          } else if (isStatusTerminated) {
+            valueStyle = { color: "#f43f5e", fontWeight: 700 };
+          }
+
+          return (
+            <div key={label} className="info-chip">
+              <div className="info-chip-icon-wrapper">
+                {getFieldIcon(label)}
+              </div>
+              <div className="info-chip-content">
+                <span className="info-chip-label">{label}</span>
+                <span className="info-chip-value" style={valueStyle} title={value || "—"}>
+                  {value || "—"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -45,39 +137,125 @@ export default function EmployeeDetail() {
     ? ["profile", "documents", "certifications", "salary", "performance", "permissions"]
     : ["profile", "documents", "certifications", "salary", "performance"];
 
+  let initials = "EE";
+  if (emp) {
+    initials = emp.full_name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "EE";
+  }
+
   return (
     <div>
-      <PageHeader
-        title={emp?.full_name ?? "Employee"}
-        subtitle={emp ? `${emp.employee_code} · ${emp.department ?? ""}` : ""}
-        actions={
-          <button className="btn btn-outline btn-sm" onClick={() => navigate(-1)}>
-            ← Back
-          </button>
-        }
-      />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 500 }}>
+          Employees / Details
+        </div>
+        <button
+          className="btn btn-outline btn-sm"
+          style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 6 }}
+          onClick={() => navigate(-1)}
+        >
+          <ChevronLeft size={16} /> Back
+        </button>
+      </div>
+
       <AsyncState loading={loading} error={error}>
         {emp && (
           <>
-            <div className="tabs" style={{ marginBottom: 20 }}>
-              {tabs.map((t) => (
-                <div key={t} style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                  <button
-                    className={`tab-btn ${tab === t ? "tab-btn-active" : ""}`}
-                    onClick={() => setTab(t)}
-                  >
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </button>
-                  {isHr && (
-                    <button
-                      className="tab-alert-btn"
-                      title={`Send alert about ${t}`}
-                      onClick={() => setAlertTab(t)}
-                    >
-                      <BellRing size={14} />
-                    </button>
+            {/* Minimalist Profile Header Section */}
+            <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "20px 0", marginBottom: 32, borderBottom: "1px solid hsl(var(--border) / 0.5)" }}>
+              <div 
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.05) 100%)",
+                  border: "2px solid hsl(var(--primary) / 0.25)",
+                  color: "var(--primary-color)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 32,
+                  fontWeight: 600,
+                  letterSpacing: "-0.02em",
+                  flexShrink: 0,
+                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.08)"
+                }}
+              >
+                {initials}
+              </div>
+              
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "var(--text)" }}>{emp.full_name}</h1>
+                  
+                  {emp.employment_status === "Active" && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
+                      Active
+                    </span>
+                  )}
+                  {emp.employment_status === "On Leave" && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b" }} />
+                      On Leave
+                    </span>
+                  )}
+                  {emp.employment_status === "Terminated" && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: "rgba(244, 63, 94, 0.1)", color: "#f43f5e", border: "1px solid rgba(244, 63, 94, 0.2)" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f43f5e" }} />
+                      Terminated
+                    </span>
                   )}
                 </div>
+                
+                <div style={{ color: "var(--text-secondary)", fontSize: 15, fontWeight: 500, marginTop: 4 }}>
+                  {emp.designation ?? "—"} <span style={{ color: "hsl(var(--border) / 0.5)", margin: "0 8px" }}>|</span> {emp.department ?? "—"}
+                </div>
+                
+                <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap", color: "var(--text-muted)", fontSize: 13 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <User size={14} />
+                    <span>ID: {emp.employee_code}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Calendar size={14} />
+                    <span>Joined {emp.date_of_joining ? emp.date_of_joining : "—"}</span>
+                  </div>
+                  {emp.work_location && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <MapPin size={14} />
+                      <span>{emp.work_location}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="premium-tabs-container">
+              {tabs.map((t) => (
+                <button
+                  key={t}
+                  className={`premium-tab-btn ${tab === t ? "premium-tab-btn-active" : ""}`}
+                  onClick={() => setTab(t)}
+                >
+                  <span>{t.charAt(0).toUpperCase() + t.slice(1)}</span>
+                  {isHr && (
+                    <span
+                      className="premium-tab-alert-badge"
+                      title={`Send alert about ${t}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAlertTab(t);
+                      }}
+                    >
+                      <BellRing size={12} />
+                    </span>
+                  )}
+                </button>
               ))}
             </div>
 
@@ -215,30 +393,38 @@ function SendAlertModal({
 }
 
 function ProfileTab({ emp }: { emp: Employee }) {
-  const rows: [string, string][] = [
-    ["Employee ID", emp.employee_code],
+  const personalRows: [string, string][] = [
     ["Full Name", emp.full_name],
     ["Email", emp.email],
     ["Mobile", emp.mobile_number ?? "—"],
     ["Date of Birth", emp.date_of_birth ?? "—"],
     ["Gender", emp.gender ?? "—"],
     ["Marital Status", emp.marital_status ?? "—"],
+    ["Location", emp.work_location ?? "—"],
+  ];
+
+  const employmentRows: [string, string][] = [
+    ["Employee ID", emp.employee_code],
     ["Date of Joining", emp.date_of_joining ?? "—"],
     ["Department", emp.department ?? "—"],
     ["Designation", emp.designation ?? "—"],
-    ["Status", emp.employment_status ?? "—"],
-    ["Location", emp.work_location ?? "—"],
+    ["Employment Status", emp.employment_status ?? "—"],
   ];
+
   return (
-    <div className="card">
-      <div className="detail-grid">
-        {rows.map(([label, value]) => (
-          <div key={label} className="detail-item">
-            <div className="detail-label">{label}</div>
-            <div className="detail-value">{value}</div>
-          </div>
-        ))}
-      </div>
+    <div className="profile-info-grid">
+      <Section
+        title="Personal Information"
+        icon={<User size={16} />}
+        iconVariant="indigo"
+        rows={personalRows}
+      />
+      <Section
+        title="Employment Information"
+        icon={<Briefcase size={16} />}
+        iconVariant="blue"
+        rows={employmentRows}
+      />
     </div>
   );
 }
@@ -565,7 +751,6 @@ function SalaryRevisionForm({ employeeId, onSuccess }: { employeeId: string; onS
   const [revisedSalary, setRevisedSalary] = useState("");
   const [revisionPct, setRevisionPct] = useState("");
   const [comments, setComments] = useState("");
-  const [approvalStatus, setApprovalStatus] = useState("approved");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -582,7 +767,6 @@ function SalaryRevisionForm({ employeeId, onSuccess }: { employeeId: string; onS
         revised_salary: revisedSalary,
         revision_percentage: revisionPct || undefined,
         comments: comments || undefined,
-        approval_status: approvalStatus,
       });
       onSuccess();
     } catch { setFormError("Failed to add salary revision."); } finally { setSubmitting(false); }
@@ -598,11 +782,6 @@ function SalaryRevisionForm({ employeeId, onSuccess }: { employeeId: string; onS
           <div className="field"><label>Revised Salary</label><input className="input" type="number" value={revisedSalary} onChange={(e) => setRevisedSalary(e.target.value)} /></div>
           <div className="field"><label>Revision %</label><input className="input" type="number" value={revisionPct} onChange={(e) => setRevisionPct(e.target.value)} /></div>
           <div className="field"><label>Comments</label><input className="input" value={comments} onChange={(e) => setComments(e.target.value)} /></div>
-          <div className="field"><label>Approval Status</label>
-            <select className="input" value={approvalStatus} onChange={(e) => setApprovalStatus(e.target.value)}>
-              <option value="approved">Approved</option><option value="pending">Pending</option>
-            </select>
-          </div>
         </div>
         {formError && <p className="error-text" style={{ marginBottom: 12 }}>{formError}</p>}
         <button className="btn btn-sm" type="submit" disabled={submitting}>{submitting ? "Saving…" : "Add Revision"}</button>

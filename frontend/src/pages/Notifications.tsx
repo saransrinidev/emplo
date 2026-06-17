@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ExternalLink } from "lucide-react";
+import { 
+  CheckCircle2, 
+  ExternalLink, 
+  Bell, 
+  FileText, 
+  ShieldAlert, 
+  Award, 
+  CreditCard 
+} from "lucide-react";
 import { notificationsApi, type NotificationItem } from "../api/notifications";
 import AsyncState from "../components/AsyncState";
 import PageHeader from "../components/PageHeader";
@@ -39,6 +47,46 @@ function getNotificationRoute(notification: NotificationItem): string | null {
   return null;
 }
 
+// Map notification to a visual category (icon + color theme)
+function getNotificationCategory(notification: NotificationItem) {
+  const title = notification.title.toLowerCase();
+  const message = notification.message.toLowerCase();
+
+  if (title.includes("document") || message.includes("document")) {
+    return {
+      icon: <FileText size={18} />,
+      colorClass: "doc-notif",
+      label: "Document"
+    };
+  }
+  if (title.includes("certification") || title.includes("certificate") || message.includes("certif")) {
+    return {
+      icon: <Award size={18} />,
+      colorClass: "cert-notif",
+      label: "Certification"
+    };
+  }
+  if (title.includes("salary") || message.includes("salary") || title.includes("payroll")) {
+    return {
+      icon: <CreditCard size={18} />,
+      colorClass: "salary-notif",
+      label: "Salary"
+    };
+  }
+  if (title.includes("permission") || title.includes("edit access") || message.includes("permission") || message.includes("access")) {
+    return {
+      icon: <ShieldAlert size={18} />,
+      colorClass: "access-notif",
+      label: "Security"
+    };
+  }
+  return {
+    icon: <Bell size={18} />,
+    colorClass: "general-notif",
+    label: "Alert"
+  };
+}
+
 export default function Notifications() {
   const navigate = useNavigate();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -48,14 +96,10 @@ export default function Notifications() {
   );
   const [notifications, setNotifications] = useState<NotificationItem[] | null>(null);
   const [marking, setMarking] = useState(false);
+  const [activeTab, setActiveTab] = useState<"all" | "unread" | "read">("all");
 
   // Use local state once loaded to avoid flicker on mark
   const list = notifications ?? data ?? [];
-
-  // Sync data into local state
-  if (data && !notifications) {
-    // Only set once
-  }
 
   const handleMarkAllRead = async () => {
     setMarking(true);
@@ -92,6 +136,12 @@ export default function Notifications() {
 
   const unreadCount = list.filter((n) => !n.is_read).length;
 
+  const filteredNotifications = list.filter((n) => {
+    if (activeTab === "unread") return !n.is_read;
+    if (activeTab === "read") return n.is_read;
+    return true;
+  });
+
   return (
     <div>
       <PageHeader
@@ -107,13 +157,41 @@ export default function Notifications() {
           </button>
         }
       />
+
+      <div className="notifications-tabs">
+        <button
+          className={`notif-tab-btn ${activeTab === "all" ? "notif-tab-btn-active" : ""}`}
+          onClick={() => setActiveTab("all")}
+        >
+          All <span className="tab-count-badge">{list.length}</span>
+        </button>
+        <button
+          className={`notif-tab-btn ${activeTab === "unread" ? "notif-tab-btn-active" : ""}`}
+          onClick={() => setActiveTab("unread")}
+        >
+          Unread <span className="tab-count-badge">{unreadCount}</span>
+        </button>
+        <button
+          className={`notif-tab-btn ${activeTab === "read" ? "notif-tab-btn-active" : ""}`}
+          onClick={() => setActiveTab("read")}
+        >
+          Read <span className="tab-count-badge">{list.length - unreadCount}</span>
+        </button>
+      </div>
+
       <AsyncState loading={loading} error={error}>
-        {list.length === 0 ? (
-          <p className="muted">No notifications.</p>
+        {filteredNotifications.length === 0 ? (
+          <div className="notif-empty-state">
+            <Bell size={40} className="notif-empty-icon" />
+            <p className="muted" style={{ margin: 0, fontSize: 14 }}>
+              No {activeTab === "all" ? "" : activeTab} notifications.
+            </p>
+          </div>
         ) : (
           <div className="stack">
-            {list.map((n) => {
+            {filteredNotifications.map((n) => {
               const route = getNotificationRoute(n);
+              const { icon, colorClass } = getNotificationCategory(n);
               return (
                 <div
                   key={n.id}
@@ -121,33 +199,34 @@ export default function Notifications() {
                   onClick={() => handleClick(n)}
                   style={{ cursor: route ? "pointer" : "default" }}
                 >
-                  <div className="notification-card-header">
-                    <div style={{ flex: 1 }}>
-                      <div className="notification-card-title">
-                        {n.title}
-                        {!n.is_read && <span className="badge badge-solid" style={{ marginLeft: 8, fontSize: 10 }}>New</span>}
-                      </div>
-                      <p className="notification-card-message">{n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "")}</p>
-                      <p className="notification-card-time">
-                        {formatTime(n.created_at)}
-                      </p>
+                  <div className={`notif-icon-wrapper ${colorClass}`}>
+                    {icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="notification-card-title">
+                      {n.title}
+                      {!n.is_read && <span className="badge badge-solid" style={{ marginLeft: 8, fontSize: 10 }}>New</span>}
                     </div>
-                    <div className="notification-card-actions" onClick={(e) => e.stopPropagation()}>
-                      {!n.is_read && (
-                        <button
-                          className="notification-mark-btn"
-                          title="Mark as read"
-                          onClick={() => handleMarkOneRead(n.id)}
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      )}
-                      {route && (
-                        <span className="notification-link-icon" title="Go to section">
-                          <ExternalLink size={14} />
-                        </span>
-                      )}
-                    </div>
+                    <p className="notification-card-message">{n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "")}</p>
+                    <p className="notification-card-time">
+                      {formatTime(n.created_at)}
+                    </p>
+                  </div>
+                  <div className="notification-card-actions" onClick={(e) => e.stopPropagation()}>
+                    {!n.is_read && (
+                      <button
+                        className="notification-mark-btn"
+                        title="Mark as read"
+                        onClick={() => handleMarkOneRead(n.id)}
+                      >
+                        <CheckCircle2 size={16} />
+                      </button>
+                    )}
+                    {route && (
+                      <span className="notification-link-icon" title="Go to section">
+                        <ExternalLink size={14} />
+                      </span>
+                    )}
                   </div>
                 </div>
               );
