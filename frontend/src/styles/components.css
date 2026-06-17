@@ -571,3 +571,140 @@
     padding: 40px 16px;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CERTIFICATION FORM — AUTO/MANUAL MODE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cert-form-card {
+  margin-bottom: 20px;
+}
+
+.cert-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.cert-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px;
+  border: 2px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.cert-mode-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--text);
+}
+
+.cert-mode-active {
+  border-color: var(--primary-color);
+  background: hsl(var(--primary) / 0.04);
+  color: var(--primary-color);
+}
+
+.cert-mode-active svg {
+  color: var(--primary-color);
+}
+
+.cert-mode-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.cert-upload-box {
+  border: 2px dashed hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-secondary);
+}
+
+.cert-upload-box:hover {
+  border-color: var(--primary-color);
+  background: hsl(var(--primary) / 0.02);
+}
+
+.cert-upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.cert-upload-selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+
+.cert-upload-scanning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.cert-scan-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: hsl(var(--success) / 0.08);
+  color: hsl(var(--success));
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .cert-mode-toggle {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Certificate paste text fallback */
+.cert-paste-section {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 20px;
+  background: hsl(45, 93%, 97%);
+}
+
+.cert-paste-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}

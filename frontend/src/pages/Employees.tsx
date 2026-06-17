@@ -18,6 +18,7 @@ const EMPTY_FORM: EmployeeCreate = {
   designation: "",
   employment_status: "Active",
   work_location: "",
+  initial_salary: undefined,
 };
 
 export default function Employees() {
@@ -702,6 +703,21 @@ function SingleEmployeeForm({
             ...employees.map((e) => ({ value: e.id, label: `${e.full_name} (${e.employee_code})` })),
           ]}
         />
+        <div className="field">
+          <label>Initial Salary (CTC / year)</label>
+          <div style={{ position: "relative" }}>
+            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, fontWeight: 600, color: "var(--text-muted)", pointerEvents: "none" }}>₹</span>
+            <input
+              className="input"
+              type="number"
+              style={{ paddingLeft: 28 }}
+              value={form.initial_salary ?? ""}
+              onChange={(e) => setForm((prev) => ({ ...prev, initial_salary: e.target.value ? Number(e.target.value) : undefined }))}
+              placeholder="e.g. 720000"
+              min="0"
+            />
+          </div>
+        </div>
       </div>
       {error && <p className="error-text" style={{ marginTop: 12 }}>{error}</p>}
       <div style={{ marginTop: 20, display: "flex", gap: 8, justifyContent: "flex-end" }}>

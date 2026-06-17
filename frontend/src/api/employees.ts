@@ -31,6 +31,7 @@ export interface EmployeeCreate {
   employment_status?: string;
   work_location?: string;
   manager_id?: string;
+  initial_salary?: number;
 }
 
 export interface UserAccount {

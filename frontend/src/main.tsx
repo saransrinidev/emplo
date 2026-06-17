@@ -8,6 +8,7 @@ import { SidebarProvider } from "./context/SidebarContext";
 import { ToastProvider } from "./components/Toast";
 import "./styles/global.css";
 import "./styles/components.css";
+import "./styles/compensation.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

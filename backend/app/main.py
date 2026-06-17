@@ -21,6 +21,7 @@ from app.api import (
     holidays,
     leave_management,
     notifications,
+    ocr,
     password_reset,
     performance,
     permissions,
@@ -92,4 +93,5 @@ app.include_router(edit_requests.router)
 app.include_router(audit.router)
 app.include_router(tickets.router)
 app.include_router(export.router)
+app.include_router(ocr.router)
 app.include_router(upload.router)
