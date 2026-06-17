@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  Users, 
-  Briefcase, 
-  User, 
-  Search, 
-  Maximize2, 
+import {
+  ChevronDown,
+  ChevronRight,
+  Users,
+  Briefcase,
+  User,
+  Search,
+  Maximize2,
   Minimize2,
   ZoomIn,
   ZoomOut,
@@ -32,15 +32,15 @@ interface TreeNode {
   children: TreeNode[];
 }
 
-function buildTree(employees: Employee[]): { 
-  roots: TreeNode[]; 
-  unassigned: Employee[]; 
-  allManagers: string[]; 
-  parentMap: Map<string, string> 
+function buildTree(employees: Employee[]): {
+  roots: TreeNode[];
+  unassigned: Employee[];
+  allManagers: string[];
+  parentMap: Map<string, string>
 } {
   const map = new Map<string, TreeNode>();
   const roots: TreeNode[] = [];
-  const parentMap = new Map<string, string>(); 
+  const parentMap = new Map<string, string>();
 
   for (const emp of employees) {
     map.set(emp.id, { employee: emp, children: [] });
@@ -108,14 +108,14 @@ export default function OrgChart() {
   useEffect(() => {
     if (!searchQuery.trim()) return;
 
-    const matchedEmpIds = employees.filter(emp => 
+    const matchedEmpIds = employees.filter(emp =>
       emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase()))
     ).map(emp => emp.id);
 
     const toExpand = new Set(expandedNodes);
-    
+
     for (const empId of matchedEmpIds) {
       let currentId = empId;
       while (parentMap.has(currentId)) {
@@ -124,7 +124,7 @@ export default function OrgChart() {
         currentId = managerId;
       }
     }
-    
+
     setExpandedNodes(toExpand);
   }, [searchQuery]);
 
@@ -173,8 +173,8 @@ export default function OrgChart() {
   const totalEmployees = employees.length;
   const totalManagers = allManagers.length;
   const totalUnassigned = unassigned.length;
-  const avgReports = totalManagers > 0 
-    ? (employees.filter(e => e.manager_id).length / totalManagers).toFixed(1) 
+  const avgReports = totalManagers > 0
+    ? (employees.filter(e => e.manager_id).length / totalManagers).toFixed(1)
     : "0.0";
 
   return (

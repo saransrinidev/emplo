@@ -18,7 +18,7 @@ export default function Layout() {
     notificationsApi
       .unreadCount()
       .then((r) => setUnreadCount(r.count))
-      .catch(() => {});
+      .catch(() => { });
   }, [user]);
 
   function roleLabel(role: string): string {
@@ -31,15 +31,15 @@ export default function Layout() {
 
   const initials = user?.name
     ? user.name
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
     : "";
 
   // Mock avatar image for visual parity with the mockup, fallback to initials
-  const avatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80";
+  const avatarUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80";
 
   return (
     <div className="app-shell">
@@ -58,7 +58,7 @@ export default function Layout() {
           >
             <Menu size={20} />
           </button>
-          
+
           <div className="search-container">
             <input
               type="text"
@@ -83,7 +83,7 @@ export default function Layout() {
             >
               {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
             </button>
-            
+
             {user && (
               <div className="profile-dropdown">
                 {avatarUrl ? (

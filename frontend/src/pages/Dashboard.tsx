@@ -23,6 +23,8 @@ import {
   BellRing,
   Timer,
   Banknote,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { dashboardApi } from "../api/dashboard";
 import { notificationsApi, type NotificationItem } from "../api/notifications";
@@ -71,39 +73,7 @@ function money(value: string | null): string {
   return Number.isNaN(n) ? value : `₹${n.toLocaleString()}`;
 }
 
-const WelcomeIllustration = () => (
-  <svg width="180" height="120" viewBox="0 0 180 120" fill="none" style={{ display: "block" }}>
-    {/* Decorative background shapes with opacity */}
-    <circle cx="110" cy="65" r="45" fill="var(--primary-color)" opacity="0.12" />
-    <circle cx="130" cy="50" r="25" fill="var(--primary-color)" opacity="0.18" />
-    
-    {/* Floor/desk base */}
-    <path d="M30 100H150" stroke="var(--primary-color)" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
-    
-    {/* Potted Plant */}
-    <rect x="42" y="82" width="12" height="18" rx="2" fill="#f97316" />
-    <path d="M40 82H56" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" />
-    <path d="M48 82C44 74 41 78 43 70C45 62 48 66 48 82Z" fill="#22c55e" />
-    <path d="M48 82C52 74 55 78 53 70C51 62 48 66 48 82Z" fill="#15803d" />
-    <path d="M48 82C40 76 43 73 37 68C31 63 38 67 48 82Z" fill="#4ade80" />
 
-    {/* Laptop */}
-    <rect x="110" y="82" width="32" height="18" rx="2" fill="#cbd5e1" />
-    <path d="M104 100H148" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" />
-    <rect x="114" y="85" width="24" height="12" rx="1" fill="#f8fafc" />
-    <circle cx="126" cy="91" r="3" fill="#6366f1" opacity="0.8" />
-    <line x1="117" y1="88" x2="127" y2="88" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="117" y1="94" x2="123" y2="94" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" />
-    
-    {/* Person */}
-    <path d="M78 100C78 90 85 82 94 82H102C111 82 118 90 118 100V100H78V100Z" fill="var(--primary-color)" />
-    <rect x="94" y="74" width="8" height="8" fill="#fed7aa" />
-    <circle cx="98" cy="65" r="11" fill="#fed7aa" />
-    <path d="M87 65C87 59 92 54 98 54C104 54 109 59 109 65C109 66 108 67 106 67C104 67 103 65 98 65C93 65 92 67 90 67C88 67 87 66 87 65Z" fill="#334155" />
-    <rect x="94" y="52" width="8" height="6" rx="3" fill="#334155" />
-    <path d="M84 97L106 91" stroke="#fed7aa" strokeWidth="3.5" strokeLinecap="round" />
-  </svg>
-);
 
 function WelcomeBanner({ taskCount }: { taskCount?: number }) {
   const { user } = useAuth();
@@ -146,6 +116,80 @@ function WelcomeBanner({ taskCount }: { taskCount?: number }) {
     ? `Welcome back! You have ${taskCount} task${taskCount > 1 ? "s" : ""} to complete today.`
     : "Welcome back! Your portal is up to date and running fine.";
 
+  // Attendance synchronization with localStorage
+  const checkInKey = `emplo_check_in_time_${user.id}`;
+  const modeKey = `emplo_work_mode_${user.id}`;
+  const logsKey = `emplo_time_logs_${user.id}`;
+
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [checkInTime, setCheckInTime] = useState<Date | null>(null);
+  const [elapsedTimeStr, setElapsedTimeStr] = useState("00h 00m 00s");
+
+  // Load state on mount and monitor keys
+  useEffect(() => {
+    const stored = localStorage.getItem(checkInKey);
+    if (stored) {
+      setCheckedIn(true);
+      setCheckInTime(new Date(stored));
+    } else {
+      setCheckedIn(false);
+      setCheckInTime(null);
+    }
+  }, [checkInKey]);
+
+  // Set up running timer when checked in
+  useEffect(() => {
+    if (!checkedIn || !checkInTime) {
+      setElapsedTimeStr("00h 00m 00s");
+      return;
+    }
+
+    const updateTimer = () => {
+      const diff = new Date().getTime() - checkInTime.getTime();
+      const totalSecs = Math.floor(diff / 1000);
+      const hrs = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      
+      const pad = (num: number) => String(num).padStart(2, "0");
+      setElapsedTimeStr(`${pad(hrs)}h ${pad(mins)}m ${pad(secs)}s`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [checkedIn, checkInTime]);
+
+  const handleCheckIn = () => {
+    const now = new Date();
+    localStorage.setItem(checkInKey, now.toISOString());
+    localStorage.setItem(modeKey, "Office");
+
+    // Add log
+    const storedLogs = localStorage.getItem(logsKey);
+    const logs = storedLogs ? JSON.parse(storedLogs) : [];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    logs.push({ type: "Check In (Office)", time: timeStr });
+    localStorage.setItem(logsKey, JSON.stringify(logs));
+
+    setCheckedIn(true);
+    setCheckInTime(now);
+  };
+
+  const handleCheckOut = () => {
+    const now = new Date();
+    // Add log
+    const storedLogs = localStorage.getItem(logsKey);
+    const logs = storedLogs ? JSON.parse(storedLogs) : [];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    logs.push({ type: "Check Out", time: timeStr });
+    localStorage.setItem(logsKey, JSON.stringify(logs));
+
+    localStorage.removeItem(checkInKey);
+    setCheckedIn(false);
+    setCheckInTime(null);
+  };
+
   return (
     <div className="welcome-banner">
       {/* Decorative backdrop shapes */}
@@ -168,8 +212,60 @@ function WelcomeBanner({ taskCount }: { taskCount?: number }) {
           {btnText} <ArrowRight size={14} style={{ marginLeft: 6 }} />
         </button>
       </div>
-      <div className="welcome-banner-graphic">
-        <WelcomeIllustration />
+
+      <div className="welcome-banner-profile-panel">
+        <div className="welcome-banner-profile-avatar" style={{ background: "rgba(255, 255, 255, 0.15)", border: "1.5px solid rgba(255, 255, 255, 0.5)", color: "#ffffff", boxShadow: "none" }}>
+          {checkedIn ? <Timer size={22} /> : <Clock size={22} />}
+        </div>
+        <div className="welcome-banner-profile-info" style={{ display: "flex", flexDirection: "column" }}>
+          {checkedIn ? (
+            <>
+              <h4 className="welcome-banner-profile-name">Working Time</h4>
+              <span className="welcome-banner-profile-email" style={{ fontSize: "16px", fontWeight: "700", letterSpacing: "0.02em", color: "#ffffff", margin: "4px 0" }}>
+                {elapsedTimeStr}
+              </span>
+              <div className="welcome-banner-profile-meta" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span className="welcome-banner-profile-role" style={{ background: "rgba(16, 185, 129, 0.2)", borderColor: "rgba(16, 185, 129, 0.3)", color: "#10b981" }}>
+                  Active
+                </span>
+                <button 
+                  onClick={handleCheckOut} 
+                  className="welcome-banner-punch-out-btn"
+                >
+                  <LogOut size={12} /> Punch Out
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h4 className="welcome-banner-profile-name">Daily Check-In</h4>
+              <span className="welcome-banner-profile-email" style={{ fontSize: "11px", opacity: 0.9 }}>
+                You are currently offline
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "4px" }}>
+                <button 
+                  onClick={handleCheckIn} 
+                  className="welcome-banner-punch-in-btn"
+                >
+                  <LogIn size={13} /> Punch In
+                </button>
+              </div>
+              <div className="welcome-banner-profile-status" style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.8)", marginTop: "8px" }}>
+                {taskCount !== undefined && taskCount > 0 ? (
+                  <>
+                    <span className="welcome-banner-profile-dot" style={{ backgroundColor: "#fbbf24" }} />
+                    <span>{taskCount} pending alert{taskCount > 1 ? "s" : ""}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="welcome-banner-profile-dot" />
+                    <span>System Secure</span>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

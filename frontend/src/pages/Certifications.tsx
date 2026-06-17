@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
+import { Award, CheckCircle2, Clock, AlertTriangle, Calendar, ExternalLink } from "lucide-react";
 import { certificationsApi } from "../api/certifications";
 import { uploadFile } from "../api/upload";
 import { useAuth } from "../context/AuthContext";
@@ -20,6 +21,34 @@ export default function Certifications() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
 
+  // Calculate Stats
+  const totalCerts = certifications.length;
+  const verifiedCerts = certifications.filter((c) => c.verification_status === "verified").length;
+  const pendingCerts = certifications.filter((c) => c.verification_status === "uploaded").length;
+  const expiredCerts = certifications.filter((c) => {
+    if (!c.expiry_date) return false;
+    const expiry = new Date(c.expiry_date);
+    const today = new Date();
+    // Reset hours for accurate date comparison
+    expiry.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return expiry <= today;
+  }).length;
+
+  // Helper to determine category badge styling
+  const getCategoryBadge = (category: string) => {
+    const cat = category.toLowerCase();
+    if (["aws", "azure", "microsoft"].includes(cat)) {
+      return <span className="cert-badge cert-badge-cloud">Cloud</span>;
+    } else if (["scrum", "pmp"].includes(cat)) {
+      return <span className="cert-badge cert-badge-management">Management</span>;
+    } else if (["security", "cissp"].includes(cat)) {
+      return <span className="cert-badge cert-badge-security">Security</span>;
+    } else {
+      return <span className="cert-badge cert-badge-other">{category.replace("_", " ")}</span>;
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -31,73 +60,123 @@ export default function Certifications() {
           </button>
         }
       />
+
       {showForm && user && (
-        <AddCertificationForm
-          onSuccess={() => {
-            setShowForm(false);
-            setRefreshKey((k) => k + 1);
-          }}
-        />
-      )}
-      <AsyncState loading={loading} error={error}>
-        <div className="card" style={{ padding: 0 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Certificate</th>
-                <th>Number</th>
-                <th>Category</th>
-                <th>Issued</th>
-                <th>Expiry</th>
-                <th>File</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {certifications.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="muted"
-                    style={{ textAlign: "center" }}
-                  >
-                    No certifications added yet.
-                  </td>
-                </tr>
-              ) : (
-                certifications.map((cert) => (
-                  <tr key={cert.id}>
-                    <td>{cert.certificate_name}</td>
-                    <td className="muted">{cert.certificate_number ?? "—"}</td>
-                    <td className="muted" style={{ textTransform: "capitalize" }}>
-                      {cert.category.replace("_", " ")}
-                    </td>
-                    <td className="muted">{cert.issued_date ?? "—"}</td>
-                    <td className="muted">{cert.expiry_date ?? "—"}</td>
-                    <td>
-                      {cert.file_url ? (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => {
-                            setPreviewUrl(cert.file_url);
-                            setPreviewTitle(cert.certificate_name);
-                          }}
-                        >
-                          View
-                        </button>
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </td>
-                    <td>
-                      <StatusBadge status={cert.verification_status} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="cert-form-container">
+          <AddCertificationForm
+            onSuccess={() => {
+              setShowForm(false);
+              setRefreshKey((k) => k + 1);
+            }}
+          />
         </div>
+      )}
+
+      <AsyncState loading={loading} error={error}>
+        {/* Stats Row */}
+        <div className="certs-stats-row">
+          <div className="certs-stat-card">
+            <div className="docs-stat-icon" style={{ background: "hsl(var(--primary-light) / 0.15)", color: "var(--primary-color)" }}>
+              <Award size={20} />
+            </div>
+            <div>
+              <div className="docs-stat-val">{totalCerts}</div>
+              <div className="docs-stat-lbl">Total Certifications</div>
+            </div>
+          </div>
+          <div className="certs-stat-card">
+            <div className="docs-stat-icon" style={{ background: "hsl(142 60% 93%)", color: "hsl(142 71% 45%)" }}>
+              <CheckCircle2 size={20} />
+            </div>
+            <div>
+              <div className="docs-stat-val">{verifiedCerts}</div>
+              <div className="docs-stat-lbl">Verified</div>
+            </div>
+          </div>
+          <div className="certs-stat-card">
+            <div className="docs-stat-icon" style={{ background: "hsl(45 90% 93%)", color: "hsl(45 90% 40%)" }}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <div className="docs-stat-val">{pendingCerts}</div>
+              <div className="docs-stat-lbl">Pending Review</div>
+            </div>
+          </div>
+          <div className="certs-stat-card">
+            <div className="docs-stat-icon" style={{ background: "hsl(0 84% 94%)", color: "hsl(0 84% 50%)" }}>
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <div className="docs-stat-val">{expiredCerts}</div>
+              <div className="docs-stat-lbl">Expired</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Certifications Card Grid */}
+        {certifications.length === 0 ? (
+          <div className="perf-empty">
+            <Award size={48} style={{ color: "var(--text-muted)", marginBottom: 12 }} />
+            <div style={{ fontWeight: 700, fontSize: 16 }}>No certifications added yet</div>
+            <div style={{ fontSize: 13.5, color: "var(--text-muted)", maxWidth: 300 }}>
+              Add your technical credentials or industry certificates to highlight them in your profile.
+            </div>
+          </div>
+        ) : (
+          <div className="certs-grid">
+            {certifications.map((cert) => (
+              <div key={cert.id} className="certs-card">
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                    {getCategoryBadge(cert.category)}
+                    <StatusBadge status={cert.verification_status} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: "4px 0", color: "var(--text)" }}>
+                      {cert.certificate_name}
+                    </h3>
+                    <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: 0 }}>
+                      ID: {cert.certificate_number || "—"}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-secondary)" }}>
+                      <Calendar size={14} style={{ color: "var(--text-muted)" }} />
+                      <span>Issued: {cert.issued_date || "—"}</span>
+                    </div>
+                    {cert.expiry_date && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-secondary)" }}>
+                        <Calendar size={14} style={{ color: "var(--text-muted)" }} />
+                        <span style={{
+                          color: cert.expiry_date && new Date(cert.expiry_date) <= new Date() ? "hsl(0 84% 50%)" : "inherit"
+                        }}>
+                          Expires: {cert.expiry_date}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 18, borderTop: "1px solid hsl(var(--border) / 0.5)", paddingTop: 14, display: "flex", justifyContent: "end" }}>
+                  {cert.file_url ? (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => {
+                        setPreviewUrl(cert.file_url!);
+                        setPreviewTitle(cert.certificate_name);
+                      }}
+                      style={{ width: "100%" }}
+                    >
+                      <ExternalLink size={13} style={{ marginRight: 6 }} /> View Certificate
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>No file attached</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </AsyncState>
       {previewUrl && (
         <ImageModal

@@ -1,0 +1,21 @@
+* [33m529dcb8[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mempol-ui[m[33m, [m[1;31morigin/empol-ui[m[33m)[m Updated employee portal UI
+* [33m6ac3799[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m added few tasks
+* [33m441ef4d[m fix ui issue
+[31m|[m * [33m4cc32d5[m[33m ([m[1;35mrefs/stash[m[33m)[m WIP on main: e419632 completed overall
+[31m|[m[31m/[m[33m|[m 
+[31m|[m * [33mef87648[m index on main: e419632 completed overall
+[31m|[m[31m/[m  
+* [33me419632[m completed overall
+* [33m113bfcc[m added frontend ui
+* [33mcbad1f3[m enhancing ui, started with login page
+* [33m9045649[m add few features lot
+* [33mc220bb3[m rectified hamburger issue
+* [33m0423c59[m modified ui and dashboard
+* [33ma8faa5d[m feature : upload documents and view same for certifications
+* [33md38a502[m fix : view own profile , view and add salary tab, add and view certification and expiry tracking
+* [33m11b75a0[m 0838
+* [33m9b6261c[m removing mock data
+* [33m95c9f1d[m added new backend
+* [33m30bd41a[m deleted backend to remake it
+* [33m554acca[m added sample frontend
+* [33m31a40ab[m first commit
