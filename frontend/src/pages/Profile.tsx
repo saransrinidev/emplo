@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Pencil, ShieldCheck, Clock, Send } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Pencil, ShieldCheck, Clock, Send, User, Briefcase, Calendar, MapPin, Download, MoreVertical } from "lucide-react";
 import { profileApi, type Address, type Profile as ProfileType, type EditableSections } from "../api/profile";
 import { editRequestsApi, type EditRequest } from "../api/editRequests";
 import { ApiError } from "../api/client";
 import AsyncState from "../components/AsyncState";
-import PageHeader from "../components/PageHeader";
 
 function Section({
   title,
@@ -14,6 +14,9 @@ function Section({
   canRequest,
   onRequestEdit,
   pendingRequest,
+  icon,
+  iconVariant = "indigo",
+  id,
 }: {
   title: string;
   rows: [string, string][];
@@ -22,12 +25,18 @@ function Section({
   canRequest?: boolean;
   onRequestEdit?: () => void;
   pendingRequest?: EditRequest | null;
+  icon?: React.ReactNode;
+  iconVariant?: "indigo" | "blue" | "orange";
+  id?: string;
 }) {
   return (
-    <div className="card">
-      <div className="row" style={{ marginBottom: 16 }}>
-        <h2>{title}</h2>
-        <div style={{ display: "flex", gap: 8 }}>
+    <div className="card" id={id}>
+      <div className="row" style={{ marginBottom: 20 }}>
+        <div className="section-title-container">
+          {icon && <div className={`section-title-icon section-title-${iconVariant}`}>{icon}</div>}
+          <h2 style={{ fontSize: 16, fontWeight: 600 }}>{title}</h2>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {editable && (
             <button className="btn btn-outline btn-sm" onClick={onEdit}>
               <Pencil size={14} /> Edit
@@ -50,13 +59,21 @@ function Section({
           )}
         </div>
       </div>
-      <div className="detail-grid">
-        {rows.map(([label, value]) => (
-          <div key={label} className="detail-item">
-            <div className="detail-label">{label}</div>
-            <div className="detail-value">{value || "—"}</div>
-          </div>
-        ))}
+      <div className="profile-detail-grid">
+        {rows.map(([label, value]) => {
+          const isStatusActive = value === "Active";
+          const valueClass = "profile-detail-value" + (isStatusActive ? " profile-detail-value-active" : "");
+          return (
+            <div key={label} className="profile-detail-item">
+              <div className="profile-detail-label" title={label}>
+                {label}
+              </div>
+              <div className={valueClass} title={value || "—"}>
+                {value || "—"}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -115,7 +132,6 @@ export default function Profile() {
   };
 
   const handleSubmitChanges = async (req: EditRequest) => {
-    // Capture what was changed — get fresh profile
     const freshProfile = await profileApi.get();
     let data: Record<string, unknown> = {};
     if (req.section === "phone") {
@@ -128,13 +144,89 @@ export default function Profile() {
     load();
   };
 
+  const formatDateJoined = (dateStr: string | null) => {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const handleEditClick = () => {
+    if (perms.phone) {
+      setEditPhone(true);
+    } else {
+      const el = document.getElementById("personal-info-section");
+      el?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleDownloadProfile = () => {
+    window.print();
+  };
+
   return (
     <div>
-      <PageHeader title="Profile" subtitle="Your personal and employment details." />
       <AsyncState loading={loading} error={error}>
         {profile && (
           <div className="stack">
-            {/* Temporary access banner */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <h1 className="page-header-title" style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>My Profile</h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>
+                  <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none" }}>Home</Link>
+                  <span>&gt;</span>
+                  <span style={{ color: "var(--primary-color)" }}>My Profile</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button className="btn btn-outline" style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8, height: 38 }} onClick={handleDownloadProfile}>
+                  <Download size={15} /> Download Profile
+                </button>
+                <button className="btn" style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8, height: 38 }} onClick={handleEditClick}>
+                  <Pencil size={15} /> Edit Profile
+                </button>
+              </div>
+            </div>
+
+            <div className="profile-header-card">
+              <div className="profile-header-avatar-container">
+                <img
+                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80"
+                  alt={profile.full_name}
+                  className="profile-header-avatar"
+                />
+                <div className="profile-header-status-dot" />
+              </div>
+              <div className="profile-header-info">
+                <h2 className="profile-header-name">{profile.full_name}</h2>
+                <span className="profile-header-designation">{profile.designation ?? "—"}</span>
+                <div className="profile-header-meta">
+                  <div className="profile-meta-tag">
+                    <User size={13} />
+                    <span>{profile.employee_code}</span>
+                  </div>
+                  <div className="profile-meta-tag">
+                    <Briefcase size={13} />
+                    <span>{profile.department ?? "—"}</span>
+                  </div>
+                  <div className="profile-meta-tag">
+                    <Calendar size={13} />
+                    <span>{profile.date_of_joining ? `Joined on ${formatDateJoined(profile.date_of_joining)}` : "—"}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="profile-header-actions">
+                <span className="profile-header-badge">
+                  {profile.employment_status ?? "Active"}
+                </span>
+                <button className="profile-action-btn" aria-label="More actions">
+                  <MoreVertical size={16} />
+                </button>
+              </div>
+            </div>
+
             {hasAnyPermission && (
               <div className="access-banner">
                 <ShieldCheck size={20} />
@@ -151,7 +243,6 @@ export default function Profile() {
                       .join(", ")}
                     . This access will expire automatically.
                   </p>
-                  {/* Show submit button for approved requests */}
                   {editReqs
                     .filter((r) => r.status === "approved")
                     .map((r) => (
@@ -168,34 +259,41 @@ export default function Profile() {
               </div>
             )}
 
-            <Section
-              title="Personal Information"
-              editable={perms.phone}
-              onEdit={() => setEditPhone(true)}
-              canRequest={!perms.phone}
-              onRequestEdit={() => setRequestModal("phone")}
-              pendingRequest={getActiveRequest("phone")}
-              rows={[
-                ["Employee ID", profile.employee_code],
-                ["Full Name", profile.full_name],
-                ["Email", profile.email],
-                ["Mobile", profile.mobile_number ?? ""],
-                ["Date of Birth", profile.date_of_birth ?? ""],
-                ["Gender", profile.gender ?? ""],
-                ["Marital Status", profile.marital_status ?? ""],
-              ]}
-            />
-            <Section
-              title="Employment Information"
-              rows={[
-                ["Date of Joining", profile.date_of_joining ?? ""],
-                ["Department", profile.department ?? ""],
-                ["Designation", profile.designation ?? ""],
-                ["Manager", profile.manager_name ?? ""],
-                ["Employment Status", profile.employment_status ?? ""],
-                ["Work Location", profile.work_location ?? ""],
-              ]}
-            />
+            <div className="profile-info-grid">
+              <Section
+                id="personal-info-section"
+                title="Personal Information"
+                editable={perms.phone}
+                onEdit={() => setEditPhone(true)}
+                canRequest={!perms.phone}
+                onRequestEdit={() => setRequestModal("phone")}
+                pendingRequest={getActiveRequest("phone")}
+                icon={<User />}
+                iconVariant="indigo"
+                rows={[
+                  ["Employee ID", profile.employee_code],
+                  ["Full Name", profile.full_name],
+                  ["Email", profile.email],
+                  ["Mobile", profile.mobile_number ?? ""],
+                  ["Date of Birth", profile.date_of_birth ?? ""],
+                  ["Gender", profile.gender ?? ""],
+                  ["Marital Status", profile.marital_status ?? ""],
+                ]}
+              />
+              <Section
+                title="Employment Information"
+                icon={<Briefcase />}
+                iconVariant="blue"
+                rows={[
+                  ["Date of Joining", profile.date_of_joining ?? ""],
+                  ["Department", profile.department ?? ""],
+                  ["Designation", profile.designation ?? ""],
+                  ["Manager", profile.manager_name ?? ""],
+                  ["Employment Status", profile.employment_status ?? ""],
+                  ["Work Location", profile.work_location ?? ""],
+                ]}
+              />
+            </div>
             <Section
               title="Address & Emergency Contact"
               editable={perms.address}
@@ -203,6 +301,8 @@ export default function Profile() {
               canRequest={!perms.address}
               onRequestEdit={() => setRequestModal("address")}
               pendingRequest={getActiveRequest("address")}
+              icon={<MapPin />}
+              iconVariant="orange"
               rows={[
                 ["Current Address", formatAddress(profile.addresses.find((a) => a.address_type === "current"))],
                 ["Permanent Address", formatAddress(profile.addresses.find((a) => a.address_type === "permanent"))],
