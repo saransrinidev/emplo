@@ -20,11 +20,13 @@ from app.models.holiday import Holiday, HolidayCalendar
 from app.models.leave_balance import LeaveBalance
 from app.models.leave_request import LeaveRequest
 from app.models.leave_type import LeaveType
+from app.models.message import Message
 from app.models.password_reset import PasswordResetToken
 from app.models.performance import PerformanceReview
 from app.models.profile_change_request import ProfileChangeRequest
 from app.models.role import Role
 from app.models.salary import SalaryRevision
+from app.models.task import Task
 from app.models.ticket import Ticket, TicketComment
 from app.models.user import User
 
@@ -53,6 +55,8 @@ __all__ = [
     "EmployeeBankAccount",
     "ProfileChangeRequest",
     "PasswordResetToken",
+    "Message",
+    "Task",
     "Ticket",
     "TicketComment",
 ]

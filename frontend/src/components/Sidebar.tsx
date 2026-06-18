@@ -52,6 +52,18 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["employee", "manager"],
   },
   {
+    to: "/messages",
+    label: "Messages",
+    icon: <Users />,
+    roles: ["employee", "manager", "hr_admin"],
+  },
+  {
+    to: "/tasks",
+    label: "Tasks",
+    icon: <FileText />,
+    roles: ["employee", "manager", "hr_admin"],
+  },
+  {
     to: "/documents",
     label: "Documents",
     icon: <FileText />,

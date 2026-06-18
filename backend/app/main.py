@@ -20,6 +20,7 @@ from app.api import (
     export,
     holidays,
     leave_management,
+    messages,
     notifications,
     ocr,
     password_reset,
@@ -29,6 +30,7 @@ from app.api import (
     profile,
     profile_changes,
     salary,
+    tasks,
     tickets,
     upload,
 )
@@ -96,4 +98,6 @@ app.include_router(tickets.router)
 app.include_router(export.router)
 app.include_router(ocr.router)
 app.include_router(payslip.router)
+app.include_router(messages.router)
+app.include_router(tasks.router)
 app.include_router(upload.router)
