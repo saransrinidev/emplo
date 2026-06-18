@@ -78,8 +78,8 @@ function buildTree(employees: Employee[]): {
 }
 
 export default function OrgChart() {
-  const { data, loading, error } = useApi(() => employeesApi.list());
-  const employees = data ?? [];
+  const { data, loading, error } = useApi(() => employeesApi.listWithRoles());
+  const employees = (data ?? []) as (Employee & { role?: string | null })[];
   const { roots, unassigned, allManagers, parentMap } = buildTree(employees);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -266,26 +266,51 @@ export default function OrgChart() {
                   <span className="badge" style={{ fontSize: 11, padding: "2px 6px", borderRadius: 12 }}>{unassigned.length}</span>
                 </div>
                 <p className="muted" style={{ fontSize: 13, marginBottom: 20 }}>These employees don't have a reporting manager assigned yet.</p>
-                <div className="unassigned-grid">
-                  {unassigned.map((emp) => {
-                    const initials = emp.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "EE";
-                    let hash = 0;
-                    for (let i = 0; i < emp.email.length; i++) hash = emp.email.charCodeAt(i) + ((hash << 5) - hash);
-                    const gradients = ["linear-gradient(135deg, #031273 0%, #041890 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #031273 0%, #031273 100%)"];
-                    const gradient = gradients[Math.abs(hash) % gradients.length];
-                    const matchesSearch = searchQuery && (emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) || (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase())));
-                    return (
-                      <div key={emp.id} className={`unassigned-card ${matchesSearch ? "tree-card-highlighted" : ""}`} onClick={() => handleSelectEmployee(emp)} style={{ cursor: "pointer" }}>
-                        <div className="flow-avatar" style={{ background: gradient }}>{initials}</div>
-                        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.full_name}</span>
-                          <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.designation ?? "—"} · {emp.department ?? "—"}</span>
-                        </div>
-                        <div className="tree-card-badge">{emp.employee_code}</div>
+
+                {/* Grouped by role */}
+                {(() => {
+                  const hrList = unassigned.filter(emp => (emp as any).role === "hr_admin");
+                  const mgrList = unassigned.filter(emp => (emp as any).role === "manager");
+                  const empList = unassigned.filter(emp => (emp as any).role === "employee" || !(emp as any).role);
+
+                  const renderGroup = (title: string, color: string, items: Employee[]) => items.length > 0 ? (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{title}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>({items.length})</span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="unassigned-grid">
+                        {items.map((emp) => {
+                          const initials = emp.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "EE";
+                          let hash = 0;
+                          for (let i = 0; i < emp.email.length; i++) hash = emp.email.charCodeAt(i) + ((hash << 5) - hash);
+                          const gradients = ["linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)"];
+                          const gradient = gradients[Math.abs(hash) % gradients.length];
+                          const matchesSearch = searchQuery && (emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) || (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase())));
+                          return (
+                            <div key={emp.id} className={`unassigned-card ${matchesSearch ? "tree-card-highlighted" : ""}`} onClick={() => handleSelectEmployee(emp)} style={{ cursor: "pointer" }}>
+                              <div className="flow-avatar" style={{ background: gradient }}>{initials}</div>
+                              <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+                                <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.full_name}</span>
+                                <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.designation ?? "—"} · {emp.department ?? "—"}</span>
+                              </div>
+                              <div className="tree-card-badge">{emp.employee_code}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null;
+
+                  return (
+                    <>
+                      {renderGroup("HR Administrators", "#1e40af", hrList)}
+                      {renderGroup("Managers", "#f59e0b", mgrList)}
+                      {renderGroup("Employees", "#10b981", empList)}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </>

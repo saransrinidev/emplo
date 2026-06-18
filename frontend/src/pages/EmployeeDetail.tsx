@@ -557,19 +557,30 @@ function DocumentsTab({ empId, isHr }: { empId: string; isHr: boolean }) {
 function UploadDocForm({ employeeId, onSuccess }: { employeeId: string; onSuccess: () => void }) {
   const [documentName, setDocumentName] = useState("");
   const [documentType, setDocumentType] = useState("other");
-  const [fileUrl, setFileUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+    if (file && !documentName) {
+      setDocumentName(file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "));
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!documentName || !fileUrl) { setFormError("Document name and file URL are required."); return; }
+    if (!documentName) { setFormError("Document name is required."); return; }
+    if (!selectedFile) { setFormError("Please select a file to upload."); return; }
     setSubmitting(true);
     setFormError("");
     try {
-      await documentsApi.create({ employee_id: employeeId, document_name: documentName, document_type: documentType, file_url: fileUrl });
+      const { uploadFile } = await import("../api/upload");
+      const { url } = await uploadFile(selectedFile);
+      await documentsApi.create({ employee_id: employeeId, document_name: documentName, document_type: documentType, file_url: url });
       onSuccess();
-    } catch { setFormError("Failed to upload document."); } finally { setSubmitting(false); }
+    } catch (err) { setFormError(err instanceof Error ? err.message : "Failed to upload document."); } finally { setSubmitting(false); }
   };
 
   return (
@@ -583,7 +594,10 @@ function UploadDocForm({ employeeId, onSuccess }: { employeeId: string; onSucces
               <option value="school">School</option><option value="intermediate">Intermediate</option><option value="degree">Degree</option><option value="transcript">Transcript</option><option value="other">Other</option>
             </select>
           </div>
-          <div className="field"><label>File URL</label><input className="input" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="https://..." /></div>
+          <div className="field"><label>File (PDF, JPG, PNG)</label>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleFileChange} className="input" style={{ padding: "6px 10px" }} />
+            {selectedFile && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{(selectedFile.size / 1024).toFixed(1)} KB</span>}
+          </div>
         </div>
         {formError && <p className="error-text" style={{ marginBottom: 12 }}>{formError}</p>}
         <button className="btn btn-sm" type="submit" disabled={submitting}>{submitting ? "Uploading…" : "Upload"}</button>
@@ -672,9 +686,17 @@ function AddCertForm({ employeeId, onSuccess }: { employeeId: string; onSuccess:
   const [category, setCategory] = useState("other");
   const [issuedDate, setIssuedDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
-  const [fileUrl, setFileUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+    if (file && !certName) {
+      setCertName(file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "));
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -682,6 +704,12 @@ function AddCertForm({ employeeId, onSuccess }: { employeeId: string; onSuccess:
     setSubmitting(true);
     setFormError("");
     try {
+      let fileUrl: string | undefined;
+      if (selectedFile) {
+        const { uploadFile } = await import("../api/upload");
+        const res = await uploadFile(selectedFile);
+        fileUrl = res.url;
+      }
       await certificationsApi.create({
         employee_id: employeeId,
         certificate_name: certName,
@@ -689,7 +717,7 @@ function AddCertForm({ employeeId, onSuccess }: { employeeId: string; onSuccess:
         category,
         issued_date: issuedDate || undefined,
         expiry_date: expiryDate || undefined,
-        file_url: fileUrl || undefined,
+        file_url: fileUrl,
       });
       onSuccess();
     } catch { setFormError("Failed to add certification."); } finally { setSubmitting(false); }
@@ -704,12 +732,15 @@ function AddCertForm({ employeeId, onSuccess }: { employeeId: string; onSuccess:
           <div className="field"><label>Certificate Number</label><input className="input" value={certNumber} onChange={(e) => setCertNumber(e.target.value)} /></div>
           <div className="field"><label>Category</label>
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="microsoft">Microsoft</option><option value="aws">AWS</option><option value="azure">Azure</option><option value="scrum">Scrum</option><option value="power_bi">Power BI</option><option value="other">Other</option>
+              <option value="aws">AWS</option><option value="microsoft">Microsoft</option><option value="azure">Azure</option><option value="google">Google</option><option value="meta">Meta</option><option value="cisco">Cisco</option><option value="scrum">Scrum</option><option value="pmp">PMP</option><option value="other">Other</option>
             </select>
           </div>
           <div className="field"><label>Issued Date</label><input className="input" type="date" value={issuedDate} onChange={(e) => setIssuedDate(e.target.value)} /></div>
           <div className="field"><label>Expiry Date</label><input className="input" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
-          <div className="field"><label>File URL</label><input className="input" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="https://..." /></div>
+          <div className="field"><label>Certificate File</label>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} className="input" style={{ padding: "6px 10px" }} />
+            {selectedFile && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{(selectedFile.size / 1024).toFixed(1)} KB</span>}
+          </div>
         </div>
         {formError && <p className="error-text" style={{ marginBottom: 12 }}>{formError}</p>}
         <button className="btn btn-sm" type="submit" disabled={submitting}>{submitting ? "Saving…" : "Add Certification"}</button>
@@ -765,9 +796,7 @@ function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
 
 function SalaryRevisionForm({ employeeId, onSuccess }: { employeeId: string; onSuccess: () => void }) {
   const [effectiveDate, setEffectiveDate] = useState("");
-  const [previousSalary, setPreviousSalary] = useState("");
   const [revisedSalary, setRevisedSalary] = useState("");
-  const [revisionPct, setRevisionPct] = useState("");
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -781,25 +810,22 @@ function SalaryRevisionForm({ employeeId, onSuccess }: { employeeId: string; onS
       await salaryApi.addRevision({
         employee_id: employeeId,
         effective_date: effectiveDate,
-        previous_salary: previousSalary || undefined,
         revised_salary: revisedSalary,
-        revision_percentage: revisionPct || undefined,
         comments: comments || undefined,
       });
       onSuccess();
-    } catch { setFormError("Failed to add salary revision."); } finally { setSubmitting(false); }
+    } catch (err) { setFormError(err instanceof Error ? err.message : "Failed to add salary revision."); } finally { setSubmitting(false); }
   };
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <h2 style={{ marginBottom: 12 }}>Add Salary Revision</h2>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>Previous salary and increment % are auto-calculated from the current salary.</p>
       <form onSubmit={handleSubmit}>
         <div className="form-grid">
-          <div className="field"><label>Effective Date</label><input className="input" type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} /></div>
-          <div className="field"><label>Previous Salary</label><input className="input" type="number" value={previousSalary} onChange={(e) => setPreviousSalary(e.target.value)} /></div>
-          <div className="field"><label>Revised Salary</label><input className="input" type="number" value={revisedSalary} onChange={(e) => setRevisedSalary(e.target.value)} /></div>
-          <div className="field"><label>Revision %</label><input className="input" type="number" value={revisionPct} onChange={(e) => setRevisionPct(e.target.value)} /></div>
-          <div className="field"><label>Comments</label><input className="input" value={comments} onChange={(e) => setComments(e.target.value)} /></div>
+          <div className="field"><label>Effective Date *</label><input className="input" type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} /></div>
+          <div className="field"><label>New Salary (CTC) *</label><input className="input" type="number" value={revisedSalary} onChange={(e) => setRevisedSalary(e.target.value)} placeholder="e.g. 720000" /></div>
+          <div className="field"><label>Reason / Comments</label><input className="input" value={comments} onChange={(e) => setComments(e.target.value)} placeholder="Annual Appraisal" /></div>
         </div>
         {formError && <p className="error-text" style={{ marginBottom: 12 }}>{formError}</p>}
         <button className="btn btn-sm" type="submit" disabled={submitting}>{submitting ? "Saving…" : "Add Revision"}</button>
@@ -875,7 +901,7 @@ function PerfReviewForm({ employeeId, onSuccess }: { employeeId: string; onSucce
         comments: comments || undefined,
       });
       onSuccess();
-    } catch { setFormError("Failed to add review."); } finally { setSubmitting(false); }
+    } catch (err) { setFormError(err instanceof Error ? err.message : "Failed to add review."); } finally { setSubmitting(false); }
   };
 
   return (

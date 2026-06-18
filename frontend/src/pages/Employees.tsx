@@ -90,6 +90,7 @@ export default function Employees() {
   const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [loginModal, setLoginModal] = useState<EmployeeWithRole | null>(null);
+  const [bulkLoginModal, setBulkLoginModal] = useState(false);
   const [terminateTarget, setTerminateTarget] = useState<EmployeeWithRole | null>(null);
   const [assignManagerTarget, setAssignManagerTarget] = useState<EmployeeWithRole | null>(null);
   const [changeRoleTarget, setChangeRoleTarget] = useState<EmployeeWithRole | null>(null);
@@ -131,6 +132,7 @@ export default function Employees() {
   const handleTerminated = (id: string) => {
     setEmployees((prev) => prev.filter((e) => e.id !== id));
     setTerminateTarget(null);
+    loadEmployees();
   };
 
   // Filtered employees
@@ -197,9 +199,16 @@ export default function Employees() {
         subtitle={isHr ? "All employee records." : "Employees who report directly to you."}
         actions={
           isHr ? (
-            <button className="btn btn-sm" onClick={() => setShowAddModal(true)}>
-              + Add Employee
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              {employees.some((e) => !e.role) && (
+                <button className="btn btn-outline btn-sm" onClick={() => setBulkLoginModal(true)}>
+                  Bulk Create Logins
+                </button>
+              )}
+              <button className="btn btn-sm" onClick={() => setShowAddModal(true)}>
+                + Add Employee
+              </button>
+            </div>
           ) : undefined
         }
       />
@@ -217,7 +226,15 @@ export default function Employees() {
       {loginModal && (
         <CreateLoginModal
           employee={loginModal}
-          onClose={() => setLoginModal(null)}
+          onClose={() => { setLoginModal(null); loadEmployees(); }}
+        />
+      )}
+
+      {/* Bulk Create Login Modal */}
+      {bulkLoginModal && (
+        <BulkCreateLoginModal
+          employees={employees.filter((e) => !e.role)}
+          onClose={() => { setBulkLoginModal(false); loadEmployees(); }}
         />
       )}
 
@@ -242,6 +259,7 @@ export default function Employees() {
               )
             );
             setAssignManagerTarget(null);
+            loadEmployees();
           }}
           onClose={() => setAssignManagerTarget(null)}
         />
@@ -258,6 +276,7 @@ export default function Employees() {
               )
             );
             setChangeRoleTarget(null);
+            loadEmployees();
           }}
           onClose={() => setChangeRoleTarget(null)}
         />
@@ -966,7 +985,7 @@ function SingleEmployeeForm({
           onChange={(v) => set("manager_id", v)}
           options={[
             { value: "", label: "— None —" },
-            ...employees.map((e) => ({ value: e.id, label: `${e.full_name} (${e.employee_code})` })),
+            ...employees.filter((e) => e.role === "manager" || e.role === "hr_admin").map((e) => ({ value: e.id, label: `${e.full_name} (${e.employee_code}) • ${e.role === "hr_admin" ? "HR" : "Manager"}` })),
           ]}
         />
         <div className="field">
@@ -998,8 +1017,8 @@ function SingleEmployeeForm({
 
 // ------- Bulk Import Form -------
 
-const CSV_TEMPLATE_HEADER = "employee_code,full_name,email,mobile_number,date_of_birth,gender,marital_status,date_of_joining,department,designation,employment_status,work_location";
-const CSV_TEMPLATE_EXAMPLE = "EMP-2001,John Doe,john@company.com,+1 555 0200,1990-05-15,Male,Single,2024-01-10,Engineering,Software Engineer,Active,Remote";
+const CSV_TEMPLATE_HEADER = "employee_code,full_name,email,mobile_number,date_of_birth,gender,marital_status,date_of_joining,department,designation,employment_status,work_location,initial_salary";
+const CSV_TEMPLATE_EXAMPLE = "EMP-2001,John Doe,john@company.com,+1 555 0200,1990-05-15,Male,Single,2024-01-10,Engineering,Software Engineer,Active,Remote,720000";
 
 function BulkImportForm({ onClose }: { onClose: () => void }) {
   const [csvData, setCsvData] = useState("");
@@ -1147,6 +1166,151 @@ function BulkImportForm({ onClose }: { onClose: () => void }) {
             {submitting ? "Importing…" : "Import Employees"}
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ------- Bulk Create Login Modal -------
+
+function BulkCreateLoginModal({
+  employees,
+  onClose,
+}: {
+  employees: EmployeeWithRole[];
+  onClose: () => void;
+}) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [password, setPassword] = useState("Secret123");
+  const [role, setRole] = useState("employee");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<{ created: number; errors: string[] } | null>(null);
+
+  const toggleId = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedIds.size === employees.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(employees.map((e) => e.id)));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedIds.size === 0) { setError("Select at least one employee"); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await employeesApi.bulkCreateLogins({
+        employee_ids: Array.from(selectedIds),
+        password,
+        role,
+      });
+      setResult(res);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to create logins");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Bulk Create Logins</h2>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          {result ? (
+            <>
+              <div style={{ padding: 16, background: "var(--primary-light)", borderRadius: "var(--radius)", marginBottom: 16 }}>
+                <p style={{ color: "var(--text)", fontSize: 14, fontWeight: 600 }}>
+                  ✓ Created {result.created} login account{result.created !== 1 ? "s" : ""}
+                </p>
+              </div>
+              {result.errors.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 4 }}>Skipped:</p>
+                  {result.errors.map((err, i) => (
+                    <p key={i} style={{ fontSize: 12, color: "hsl(var(--destructive))", margin: "2px 0" }}>• {err}</p>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button className="btn btn-sm" onClick={onClose}>Done</button>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>
+                Select employees to create login accounts for. They'll all get the same role and password.
+              </p>
+
+              <div className="form-grid" style={{ marginBottom: 16 }}>
+                <div className="field">
+                  <label>Role for all</label>
+                  <select className="input" value={role} onChange={(e) => setRole(e.target.value)}>
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="hr_admin">HR Administrator</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Password for all</label>
+                  <input className="input" type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" />
+                </div>
+              </div>
+
+              {/* Employee selection list */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600 }}>Select employees ({selectedIds.size}/{employees.length})</label>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={selectAll}>
+                    {selectedIds.size === employees.length ? "Deselect all" : "Select all"}
+                  </button>
+                </div>
+                <div style={{ maxHeight: 240, overflowY: "auto", border: "1px solid hsl(var(--border))", borderRadius: 8, padding: 4 }}>
+                  {employees.length === 0 ? (
+                    <p className="muted" style={{ padding: 16, textAlign: "center", fontSize: 13 }}>All employees already have login accounts.</p>
+                  ) : (
+                    employees.map((emp) => (
+                      <label
+                        key={emp.id}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+                          borderRadius: 6, cursor: "pointer",
+                          background: selectedIds.has(emp.id) ? "hsl(var(--primary) / 0.05)" : "transparent",
+                        }}
+                      >
+                        <input type="checkbox" checked={selectedIds.has(emp.id)} onChange={() => toggleId(emp.id)} style={{ cursor: "pointer" }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>{emp.full_name}</div>
+                          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{emp.email} · {emp.employee_code}</div>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {error && <p className="error-text" style={{ marginBottom: 12 }}>{error}</p>}
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-sm" disabled={submitting || selectedIds.size === 0}>
+                  {submitting ? "Creating…" : `Create ${selectedIds.size} Login${selectedIds.size !== 1 ? "s" : ""}`}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

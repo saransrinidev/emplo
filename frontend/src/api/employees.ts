@@ -82,6 +82,9 @@ export const employeesApi = {
   createLogin: (employeeId: string, data: { password: string; role: string }) =>
     api.post<UserAccount>(`/employees/${employeeId}/create-login`, data),
 
+  bulkCreateLogins: (data: { employee_ids: string[]; password: string; role: string }) =>
+    api.post<{ total: number; created: number; errors: string[] }>("/employees/bulk-create-login", data),
+
   changeRole: (employeeId: string, role: string) =>
     api.put<UserAccount>(`/employees/${employeeId}/change-role`, { role }),
 

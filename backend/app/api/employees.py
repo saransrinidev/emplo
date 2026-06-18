@@ -172,6 +172,7 @@ class BulkEmployeeItem(BaseModel):
     designation: str | None = None
     employment_status: str | None = None
     work_location: str | None = None
+    initial_salary: str | None = None
 
 
 class BulkImportRequest(BaseModel):
@@ -222,9 +223,33 @@ def bulk_import_employees(
                         errors.append(f"{row_label}: Invalid date format for {date_field}: '{val}' (use YYYY-MM-DD)")
                         emp_data[date_field] = None
 
+            # Extract and remove initial_salary before creating employee
+            salary_str = emp_data.pop("initial_salary", None)
+
             employee = Employee(**emp_data)
             db.add(employee)
             db.flush()
+
+            # Create initial salary revision if provided
+            if salary_str:
+                try:
+                    salary_amount = float(salary_str)
+                    if salary_amount > 0:
+                        from app.models.salary import SalaryRevision
+                        from app.models.enums import ApprovalStatus
+                        revision = SalaryRevision(
+                            employee_id=employee.id,
+                            effective_date=emp_data.get("date_of_joining") or date_type.today(),
+                            previous_salary=None,
+                            revised_salary=salary_amount,
+                            revision_percentage=None,
+                            comments="Initial Salary",
+                            approval_status=ApprovalStatus.approved,
+                        )
+                        db.add(revision)
+                except (ValueError, TypeError):
+                    pass  # ignore invalid salary values silently
+
             created += 1
         except Exception as e:
             errors.append(f"{row_label}: {str(e)}")
@@ -313,6 +338,69 @@ def create_login_for_employee(
         role=role.name.value,
         employee_id=str(employee.id),
     )
+
+
+# --- Bulk create login accounts (HR only) ---
+
+class BulkCreateLoginRequest(BaseModel):
+    employee_ids: list[uuid.UUID]
+    password: str
+    role: RoleName = RoleName.employee
+
+
+class BulkCreateLoginResult(BaseModel):
+    total: int
+    created: int
+    errors: list[str]
+
+
+@router.post("/bulk-create-login", response_model=BulkCreateLoginResult, status_code=201)
+def bulk_create_logins(
+    payload: BulkCreateLoginRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RoleName.hr_admin)),
+) -> BulkCreateLoginResult:
+    """Create login accounts for multiple employees at once with the same role and password."""
+    if len(payload.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+
+    role = db.scalar(select(Role).where(Role.name == payload.role))
+    if role is None:
+        raise HTTPException(400, "Role not found")
+
+    created = 0
+    errors: list[str] = []
+
+    for emp_id in payload.employee_ids:
+        employee = db.get(Employee, emp_id)
+        if not employee:
+            errors.append(f"{emp_id}: Employee not found")
+            continue
+
+        # Check if already has login
+        existing = db.scalar(select(User).where(User.employee_id == emp_id))
+        if existing:
+            errors.append(f"{employee.full_name}: Already has a login account")
+            continue
+
+        # Check email not taken
+        email_taken = db.scalar(select(User).where(User.email == employee.email))
+        if email_taken:
+            errors.append(f"{employee.full_name}: Email already in use by another account")
+            continue
+
+        user = User(
+            email=employee.email,
+            password_hash=hash_password(payload.password),
+            role_id=role.id,
+            employee_id=employee.id,
+        )
+        db.add(user)
+        db.flush()
+        created += 1
+
+    db.commit()
+    return BulkCreateLoginResult(total=len(payload.employee_ids), created=created, errors=errors)
 
 
 # --- Terminate (delete) an employee (HR only) ---
