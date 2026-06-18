@@ -10,12 +10,14 @@ import Documents from "./pages/Documents";
 import EmployeeDetail from "./pages/EmployeeDetail";
 import Employees from "./pages/Employees";
 import Login from "./pages/Login";
+import Messages from "./pages/Messages";
 import MyRequests from "./pages/MyRequests";
 import Notifications from "./pages/Notifications";
 import OrgChart from "./pages/OrgChart";
 import Performance from "./pages/Performance";
 import Profile from "./pages/Profile";
 import Salary from "./pages/Salary";
+import Tasks from "./pages/Tasks";
 
 export default function App() {
   return (
@@ -32,6 +34,8 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/my-requests" element={<MyRequests />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/tasks" element={<Tasks />} />
         <Route path="/notifications" element={<Notifications />} />
 
         {/* All roles - Attendance */}
