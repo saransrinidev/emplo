@@ -15,6 +15,7 @@ export interface SessionUser {
   email: string;
   role: Role;
   name: string;
+  profile_photo: string | null;
 }
 
 interface AuthState {
@@ -88,7 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: me.id,
           email: me.email,
           role: me.role,
-          name: nameFromEmail(me.email),
+          name: me.name || nameFromEmail(me.email),
+          profile_photo: me.profile_photo || null,
         };
         setUser(sessionUser);
         setCachedUser(sessionUser);
@@ -108,7 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: me.id,
       email: me.email,
       role: me.role,
-      name: nameFromEmail(me.email),
+      name: me.name || nameFromEmail(me.email),
+      profile_photo: me.profile_photo || null,
     };
     setUser(sessionUser);
     setCachedUser(sessionUser);

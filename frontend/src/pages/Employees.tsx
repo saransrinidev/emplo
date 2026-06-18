@@ -22,7 +22,20 @@ const EMPTY_FORM: EmployeeCreate = {
   initial_salary: undefined,
 };
 
-function EmployeeAvatar({ name, email, size = 36 }: { name: string; email: string; size?: number }) {
+function EmployeeAvatar({ name, email, photo, size = 36 }: { name: string; email: string; photo?: string | null; size?: number }) {
+  if (photo) {
+    return (
+      <img
+        src={photo}
+        alt={name}
+        style={{
+          width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0,
+          border: "1.5px solid hsl(var(--border))",
+        }}
+      />
+    );
+  }
+
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -36,12 +49,12 @@ function EmployeeAvatar({ name, email, size = 36 }: { name: string; email: strin
     hash = email.charCodeAt(i) + ((hash << 5) - hash);
   }
   const colors = [
-    { bg: "rgba(99, 102, 241, 0.12)", color: "#6366f1" }, // indigo
+    { bg: "rgba(3, 18, 115, 0.12)", color: "#031273" }, // indigo
     { bg: "rgba(59, 130, 246, 0.12)", color: "#3b82f6" },  // blue
     { bg: "rgba(16, 185, 129, 0.12)", color: "#10b981" },  // green
     { bg: "rgba(245, 158, 11, 0.12)", color: "#f59e0b" },  // amber
     { bg: "rgba(244, 63, 94, 0.12)", color: "#f43f5e" },   // rose
-    { bg: "rgba(139, 92, 246, 0.12)", color: "#8b5cf6" },  // purple
+    { bg: "rgba(3, 18, 115, 0.12)", color: "#031273" },  // purple
   ];
   const { bg, color } = colors[Math.abs(hash) % colors.length];
 
@@ -302,7 +315,7 @@ export default function Employees() {
             </div>
             <div className="emp-stat-mini-card">
               <span className="emp-stat-mini-label">Departments</span>
-              <span className="emp-stat-mini-value" style={{ color: "#6366f1" }}>{deptCount}</span>
+              <span className="emp-stat-mini-value" style={{ color: "#031273" }}>{deptCount}</span>
             </div>
           </div>
 
@@ -440,7 +453,7 @@ export default function Employees() {
                         )}
                         <td style={{ paddingLeft: isHr ? 0 : 20 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <EmployeeAvatar name={emp.full_name} email={emp.email} />
+                            <EmployeeAvatar name={emp.full_name} email={emp.email} photo={emp.profile_photo} />
                             <div>
                               <div style={{ fontWeight: 600, color: "var(--text)" }}>{emp.full_name}</div>
                               <div className="muted" style={{ fontSize: 12 }}>{emp.email}</div>
@@ -529,7 +542,7 @@ export default function Employees() {
                           </div>
                         )}
                         <div className="emp-card-header" onClick={() => navigate(`/employees/${emp.id}`)} style={{ cursor: "pointer" }}>
-                          <EmployeeAvatar name={emp.full_name} email={emp.email} size={48} />
+                          <EmployeeAvatar name={emp.full_name} email={emp.email} photo={emp.profile_photo} size={48} />
                           <div className="emp-card-names">
                             <h3 className="emp-card-fullname">{emp.full_name}</h3>
                             <span className="emp-card-code">{emp.employee_code}</span>
@@ -620,7 +633,7 @@ function RoleBadge({ role }: { role: string | null }) {
     return <span className="badge" style={{ background: "rgba(255, 255, 255, 0.04)", color: "var(--text-muted)", fontSize: 11 }}>No login</span>;
   }
   const styles: Record<string, { bg: string; color: string; label: string }> = {
-    hr_admin: { bg: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", label: "HR Admin" },
+    hr_admin: { bg: "rgba(3, 18, 115, 0.1)", color: "#031273", label: "HR Admin" },
     manager: { bg: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", label: "Manager" },
     employee: { bg: "rgba(16, 185, 129, 0.1)", color: "#10b981", label: "Employee" },
   };

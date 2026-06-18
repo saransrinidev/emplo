@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Bell, Menu, Moon, Sun, Search, ChevronDown } from "lucide-react";
+import { Bell, Menu, Moon, Sun, ChevronDown } from "lucide-react";
 import Sidebar from "./Sidebar";
+import CommandPalette from "./CommandPalette";
 import { useTheme } from "../context/ThemeContext";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../context/AuthContext";
@@ -38,8 +39,8 @@ export default function Layout() {
         .toUpperCase()
     : "";
 
-  // Mock avatar image for visual parity with the mockup, fallback to initials
-  const avatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80";
+  // Use actual profile photo from auth context
+  const avatarUrl = user?.profile_photo || null;
 
   return (
     <div className="app-shell">
@@ -59,14 +60,8 @@ export default function Layout() {
             <Menu size={20} />
           </button>
           
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Search anything..."
-              className="search-input"
-            />
-            <Search className="search-icon" />
-          </div>
+          {/* Command palette trigger in navbar */}
+          <CommandPalette />
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
             <button className="top-bar-btn" aria-label="Notifications">

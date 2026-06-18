@@ -320,6 +320,7 @@ select.input {
 .grid {
   display: grid;
   gap: 16px;
+  max-width: 100%;
 }
 
 .grid-cards {
@@ -652,11 +653,31 @@ select.input {
   border-radius: calc(var(--radius) - 2px);
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary);
-  transition: all var(--transition);
+  color: hsl(0 0% 65%);
+  transition: color 0.15s ease;
   position: relative;
   white-space: nowrap;
   overflow: hidden;
+  z-index: 1;
+  text-decoration: none;
+}
+
+.nav-active-indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--sidebar-active-bg);
+  z-index: -1;
+}
+
+.nav-link:has(.nav-active-indicator) {
+  color: var(--sidebar-active-text);
+  font-weight: 600;
+}
+
+.nav-link-icon {
+  display: flex;
+  align-items: center;
 }
 
 .sidebar-collapsed .nav-link {
@@ -699,18 +720,10 @@ select.input {
 
 .nav-link:hover {
   background: var(--sidebar-hover-bg);
-  color: var(--text);
+  color: hsl(0 0% 100%);
 }
 
-.nav-link-active {
-  background: var(--sidebar-active-bg);
-  color: var(--sidebar-active-text);
-}
-
-.nav-link-active:hover {
-  background: var(--sidebar-active-bg);
-  color: var(--sidebar-active-text);
-}
+/* Active state is now handled by .nav-active-indicator via framer-motion layoutId */
 
 .nav-badge {
   width: 7px;
@@ -832,6 +845,7 @@ select.input {
   flex: 1;
   padding: 24px 32px 40px;
   min-width: 0;
+  overflow-x: hidden;
 }
 
 /* ===================================
@@ -928,13 +942,15 @@ select.input {
    DASHBOARD
    =================================== */
 .dashboard-page {
-  /* framer-motion handles page animation */
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .dashboard-grid {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-width: 100%;
 }
 
 /* Framer motion handles animations */
@@ -945,6 +961,7 @@ select.input {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: start;
+  max-width: 100%;
 }
 
 @media (max-width: 900px) {
@@ -1729,11 +1746,6 @@ select.input {
     font-size: 1.25rem;
   }
 
-  .grid-cards {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
   .stat-card {
     padding: 16px 14px;
     min-height: 0;
@@ -1855,10 +1867,6 @@ select.input {
 }
 
 @media (max-width: 400px) {
-  .grid-cards {
-    grid-template-columns: 1fr;
-  }
-
   .stat-card {
     padding: 14px 12px;
     min-height: 0;

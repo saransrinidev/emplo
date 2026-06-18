@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   LayoutDashboard,
   User,
@@ -163,27 +164,41 @@ export default function Sidebar() {
         </button>
       </div>
       <nav className="sidebar-nav">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
-            className={({ isActive }) =>
-              isActive ? "nav-link nav-link-active" : "nav-link"
-            }
-            title={collapsed ? item.label : undefined}
-          >
-            {item.icon}
-            <span className="nav-link-label">{item.label}</span>
-            {item.to === "/notifications" && unreadCount > 0 && (
-              <span className="nav-badge" />
-            )}
-          </NavLink>
-        ))}
+        {items.map((item) => {
+          const isActive = item.to === "/" 
+            ? location.pathname === "/" 
+            : location.pathname.startsWith(item.to);
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              className="nav-link"
+              title={collapsed ? item.label : undefined}
+            >
+              {isActive && (
+                <motion.div
+                  className="nav-active-indicator"
+                  layoutId="sidebar-active"
+                  transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                />
+              )}
+              <span className="nav-link-icon">{item.icon}</span>
+              <span className="nav-link-label">{item.label}</span>
+              {item.to === "/notifications" && unreadCount > 0 && (
+                <span className="nav-badge" />
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
       <div className="sidebar-footer">
         <div className="sidebar-user">
-          <div className="sidebar-avatar">{initials}</div>
+          {user.profile_photo ? (
+            <img src={user.profile_photo} alt={user.name} className="sidebar-avatar sidebar-avatar-img" />
+          ) : (
+            <div className="sidebar-avatar">{initials}</div>
+          )}
           <div className="sidebar-user-info">
             <div className="sidebar-user-name">{user.name}</div>
             <div className="sidebar-user-role">{roleLabel(user.role)}</div>

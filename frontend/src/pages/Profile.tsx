@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Pencil, ShieldCheck, Clock, Send, User, Briefcase, Calendar, MapPin, Download, MoreVertical } from "lucide-react";
+import { Pencil, ShieldCheck, Clock, Send, User, Briefcase, Calendar, MapPin, Download, MoreVertical, Trash2, Camera, Share2, LogOut } from "lucide-react";
 import { profileApi, type Address, type Profile as ProfileType, type EditableSections } from "../api/profile";
 import { editRequestsApi, type EditRequest } from "../api/editRequests";
 import { ApiError } from "../api/client";
@@ -75,6 +75,51 @@ function Section({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function ProfileActionsMenu({
+  hasPhoto,
+  onRemovePhoto,
+  onDownloadProfile,
+}: {
+  hasPhoto: boolean;
+  onRemovePhoto: () => void;
+  onDownloadProfile: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="profile-menu-wrapper">
+      <button
+        className="profile-action-btn"
+        aria-label="More actions"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <MoreVertical size={16} />
+      </button>
+      {open && (
+        <>
+          <div className="profile-menu-backdrop" onClick={() => setOpen(false)} />
+          <div className="profile-menu-dropdown">
+            <button className="profile-menu-item" onClick={() => { onDownloadProfile(); setOpen(false); }}>
+              <Download size={14} />
+              <span>Download Profile</span>
+            </button>
+            <button className="profile-menu-item" onClick={() => { window.print(); setOpen(false); }}>
+              <Share2 size={14} />
+              <span>Print / Share</span>
+            </button>
+            {hasPhoto && (
+              <button className="profile-menu-item profile-menu-item-danger" onClick={() => { onRemovePhoto(); setOpen(false); }}>
+                <Trash2 size={14} />
+                <span>Remove Profile Picture</span>
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -256,9 +301,14 @@ export default function Profile() {
                 <span className="profile-header-badge">
                   {profile.employment_status ?? "Active"}
                 </span>
-                <button className="profile-action-btn" aria-label="More actions">
-                  <MoreVertical size={16} />
-                </button>
+                <ProfileActionsMenu
+                  hasPhoto={!!profile.profile_photo}
+                  onRemovePhoto={async () => {
+                    const updated = await profileApi.removePhoto();
+                    setProfile(updated);
+                  }}
+                  onDownloadProfile={handleDownloadProfile}
+                />
               </div>
             </div>
 

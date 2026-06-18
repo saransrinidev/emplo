@@ -23,6 +23,7 @@ from app.api import (
     notifications,
     ocr,
     password_reset,
+    payslip,
     performance,
     permissions,
     profile,
@@ -94,4 +95,5 @@ app.include_router(audit.router)
 app.include_router(tickets.router)
 app.include_router(export.router)
 app.include_router(ocr.router)
+app.include_router(payslip.router)
 app.include_router(upload.router)

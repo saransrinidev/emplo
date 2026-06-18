@@ -271,7 +271,7 @@ export default function OrgChart() {
                     const initials = emp.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "EE";
                     let hash = 0;
                     for (let i = 0; i < emp.email.length; i++) hash = emp.email.charCodeAt(i) + ((hash << 5) - hash);
-                    const gradients = ["linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)"];
+                    const gradients = ["linear-gradient(135deg, #031273 0%, #041890 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #031273 0%, #031273 100%)"];
                     const gradient = gradients[Math.abs(hash) % gradients.length];
                     const matchesSearch = searchQuery && (emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) || (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase())));
                     return (
@@ -306,7 +306,7 @@ export default function OrgChart() {
                 const initials = emp.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "EE";
                 let hash = 0;
                 for (let i = 0; i < emp.email.length; i++) hash = emp.email.charCodeAt(i) + ((hash << 5) - hash);
-                const gradients = ["linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)"];
+                const gradients = ["linear-gradient(135deg, #031273 0%, #041890 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #031273 0%, #031273 100%)"];
                 const gradient = gradients[Math.abs(hash) % gradients.length];
                 const managerNode = emp.manager_id ? employees.find(e => e.id === emp.manager_id) : null;
                 const directReports = employees.filter(e => e.manager_id === emp.id);
@@ -397,7 +397,7 @@ function FlowTreeNodeComponent({ node, expandedNodes, toggleNode, searchQuery, o
   const initials = emp.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "EE";
   let hash = 0;
   for (let i = 0; i < emp.email.length; i++) hash = emp.email.charCodeAt(i) + ((hash << 5) - hash);
-  const gradients = ["linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)"];
+  const gradients = ["linear-gradient(135deg, #031273 0%, #041890 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #031273 0%, #031273 100%)"];
   const gradient = gradients[Math.abs(hash) % gradients.length];
   const matchesSearch = searchQuery && (emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) || (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase())));
   return (
@@ -430,7 +430,7 @@ function TreeNodeComponent({ node, level, expandedNodes, toggleNode, searchQuery
   const initials = emp.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "EE";
   let hash = 0;
   for (let i = 0; i < emp.email.length; i++) hash = emp.email.charCodeAt(i) + ((hash << 5) - hash);
-  const gradients = ["linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)"];
+  const gradients = ["linear-gradient(135deg, #031273 0%, #041890 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #031273 0%, #031273 100%)"];
   const gradient = gradients[Math.abs(hash) % gradients.length];
   const matchesSearch = searchQuery && (emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) || (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase())));
   return (
@@ -445,7 +445,7 @@ function TreeNodeComponent({ node, level, expandedNodes, toggleNode, searchQuery
         </div>
         <div className="tree-card-right">
           <span className="tree-card-badge">{emp.employee_code}</span>
-          {hasChildren && <span className="badge badge-solid" style={{ fontSize: 10, background: "rgba(99, 102, 241, 0.12)", color: "#6366f1", border: "1px solid rgba(99, 102, 241, 0.2)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); toggleNode(emp.id); }}>{node.children.length} report{node.children.length > 1 ? "s" : ""}</span>}
+          {hasChildren && <span className="badge badge-solid" style={{ fontSize: 10, background: "rgba(3, 18, 115, 0.12)", color: "#031273", border: "1px solid rgba(3, 18, 115, 0.2)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); toggleNode(emp.id); }}>{node.children.length} report{node.children.length > 1 ? "s" : ""}</span>}
           {hasChildren && <div className="tree-card-toggle" onClick={(e) => { e.stopPropagation(); toggleNode(emp.id); }} style={{ cursor: "pointer" }}>{expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</div>}
         </div>
       </div>

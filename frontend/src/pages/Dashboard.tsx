@@ -91,7 +91,7 @@ const WelcomeIllustration = () => (
     <rect x="110" y="82" width="32" height="18" rx="2" fill="#cbd5e1" />
     <path d="M104 100H148" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" />
     <rect x="114" y="85" width="24" height="12" rx="1" fill="#f8fafc" />
-    <circle cx="126" cy="91" r="3" fill="#6366f1" opacity="0.8" />
+    <circle cx="126" cy="91" r="3" fill="#031273" opacity="0.8" />
     <line x1="117" y1="88" x2="127" y2="88" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
     <line x1="117" y1="94" x2="123" y2="94" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" />
     

@@ -7,7 +7,8 @@ import {
   FileText, 
   ShieldAlert, 
   Award, 
-  CreditCard 
+  CreditCard,
+  X
 } from "lucide-react";
 import { notificationsApi, type NotificationItem } from "../api/notifications";
 import AsyncState from "../components/AsyncState";
@@ -112,6 +113,26 @@ export default function Notifications() {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!confirm("Clear all notifications? This cannot be undone.")) return;
+    setMarking(true);
+    try {
+      await notificationsApi.clearAll();
+      setNotifications([]);
+      setRefreshKey((k) => k + 1);
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  const handleDeleteOne = async (id: string) => {
+    try {
+      await notificationsApi.deleteOne(id);
+      const updated = (notifications ?? data ?? []).filter((n) => n.id !== id);
+      setNotifications(updated);
+    } catch { /* ignore */ }
+  };
+
   const handleMarkOneRead = async (id: string) => {
     try {
       await notificationsApi.markOneRead(id);
@@ -148,13 +169,23 @@ export default function Notifications() {
         title="Notifications"
         subtitle={`${unreadCount} unread`}
         actions={
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={handleMarkAllRead}
-            disabled={marking || unreadCount === 0}
-          >
-            Mark all read
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={handleMarkAllRead}
+              disabled={marking || unreadCount === 0}
+            >
+              Mark all read
+            </button>
+            <button
+              className="btn btn-outline btn-sm"
+              style={{ color: "hsl(var(--destructive))", borderColor: "hsl(var(--destructive) / 0.3)" }}
+              onClick={handleClearAll}
+              disabled={marking || list.length === 0}
+            >
+              Clear all
+            </button>
+          </div>
         }
       />
 
@@ -222,6 +253,14 @@ export default function Notifications() {
                         <CheckCircle2 size={16} />
                       </button>
                     )}
+                    <button
+                      className="notification-mark-btn"
+                      title="Delete notification"
+                      onClick={() => handleDeleteOne(n.id)}
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      <X size={14} />
+                    </button>
                     {route && (
                       <span className="notification-link-icon" title="Go to section">
                         <ExternalLink size={14} />

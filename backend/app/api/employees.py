@@ -332,11 +332,39 @@ def delete_employee(
     log_action(db, actor_id=user.id, action="terminate", entity_type="employee",
                entity_id=str(employee.id), changes={"full_name": employee.full_name, "email": employee.email})
 
-    # Delete linked user account if exists
+    from sqlalchemy import update, text
+
+    # 1. Nullify other employees reporting to this one
+    db.execute(update(Employee).where(Employee.manager_id == employee.id).values(manager_id=None))
+
+    # 2. Nullify leave_requests.manager_id and performance_reviews.reviewer_id
+    db.execute(text("UPDATE leave_requests SET manager_id = NULL WHERE manager_id = :eid"), {"eid": str(employee.id)})
+    db.execute(text("UPDATE performance_reviews SET reviewer_id = NULL WHERE reviewer_id = :eid"), {"eid": str(employee.id)})
+
+    # 3. Delete linked user account and clean up all user FK references
     linked_user = db.scalar(select(User).where(User.employee_id == employee.id))
     if linked_user:
+        uid = str(linked_user.id)
+        # Nullify all FK references to this user across the system
+        from app.models.salary import SalaryRevision
+        from app.models.audit_log import AuditLog
+        db.execute(update(SalaryRevision).where(SalaryRevision.created_by == linked_user.id).values(created_by=None))
+        db.execute(update(AuditLog).where(AuditLog.actor_id == linked_user.id).values(actor_id=None))
+        db.execute(text("UPDATE edit_access_requests SET approved_by = NULL WHERE approved_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE edit_access_requests SET confirmed_by = NULL WHERE confirmed_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE employee_edit_permissions SET granted_by = NULL WHERE granted_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE documents SET verified_by = NULL WHERE verified_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE tickets SET assigned_to = NULL WHERE assigned_to = :uid"), {"uid": uid})
+        db.execute(text("UPDATE tickets SET resolved_by = NULL WHERE resolved_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE profile_change_requests SET reviewed_by = NULL WHERE reviewed_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE leave_requests SET hr_id = NULL WHERE hr_id = :uid"), {"uid": uid})
+        # Delete owned records that won't cascade
+        db.execute(text("DELETE FROM notifications WHERE user_id = :uid"), {"uid": uid})
+        db.execute(text("DELETE FROM ticket_comments WHERE user_id = :uid"), {"uid": uid})
         db.delete(linked_user)
+        db.flush()
 
+    # 4. Delete the employee (cascades to addresses, contacts, docs, certs, leave_requests, etc.)
     db.delete(employee)
     db.commit()
 

@@ -74,8 +74,8 @@ function Section({
                 width: 28,
                 height: 28,
                 borderRadius: "50%",
-                background: iconVariant === "indigo" ? "rgba(99, 102, 241, 0.12)" : "rgba(59, 130, 246, 0.12)",
-                color: iconVariant === "indigo" ? "#6366f1" : "#3b82f6"
+                background: iconVariant === "indigo" ? "rgba(3, 18, 115, 0.12)" : "rgba(59, 130, 246, 0.12)",
+                color: iconVariant === "indigo" ? "#031273" : "#3b82f6"
               }}
             >
               {icon}
