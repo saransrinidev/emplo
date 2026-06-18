@@ -177,29 +177,35 @@ export default function EmployeeDetail() {
       <AsyncState loading={loading} error={error}>
         {emp && (
           <>
-            {/* Minimalist Profile Header Section */}
+            {/* Profile Header */}
             <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "20px 0", marginBottom: 32, borderBottom: "1px solid hsl(var(--border) / 0.5)" }}>
-              <div 
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.05) 100%)",
-                  border: "2px solid hsl(var(--primary) / 0.25)",
-                  color: "var(--primary-color)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 32,
-                  fontWeight: 600,
-                  letterSpacing: "-0.02em",
-                  flexShrink: 0,
-                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.08)"
-                }}
-              >
-                {initials}
-              </div>
-              
+              {emp.profile_photo ? (
+                <img
+                  src={emp.profile_photo}
+                  alt={emp.full_name}
+                  style={{
+                    width: 80, height: 80, borderRadius: "50%", objectFit: "cover",
+                    border: "2px solid hsl(220 70% 45% / 0.25)",
+                    flexShrink: 0,
+                    boxShadow: "0 4px 12px rgba(30, 64, 175, 0.08)"
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 80, height: 80, borderRadius: "50%",
+                    background: "linear-gradient(135deg, hsl(220 70% 45% / 0.15) 0%, hsl(220 70% 45% / 0.05) 100%)",
+                    border: "2px solid hsl(220 70% 45% / 0.25)",
+                    color: "hsl(220 70% 45%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em", flexShrink: 0,
+                    boxShadow: "0 4px 12px rgba(30, 64, 175, 0.08)"
+                  }}
+                >
+                  {initials}
+                </div>
+              )}
+
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "var(--text)" }}>{emp.full_name}</h1>

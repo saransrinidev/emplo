@@ -42,5 +42,6 @@ class ProfileOut(BaseModel):
     manager_name: str | None = None
     employment_status: str | None = None
     work_location: str | None = None
+    profile_photo: str | None = None
     addresses: list[AddressOut] = []
     emergency_contacts: list[EmergencyContactOut] = []

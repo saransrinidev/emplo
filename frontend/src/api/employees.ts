@@ -15,6 +15,7 @@ export interface Employee {
   employment_status: string | null;
   work_location: string | null;
   manager_id: string | null;
+  profile_photo: string | null;
 }
 
 export interface EmployeeCreate {
@@ -52,6 +53,7 @@ export interface EmployeeWithRole {
   work_location: string | null;
   manager_id: string | null;
   role: string | null;
+  profile_photo: string | null;
 }
 
 export interface BulkImportResult {

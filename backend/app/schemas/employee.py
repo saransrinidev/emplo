@@ -43,5 +43,6 @@ class EmployeeOut(EmployeeBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    profile_photo: str | None = None
     created_at: datetime
     updated_at: datetime

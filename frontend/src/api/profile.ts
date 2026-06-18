@@ -32,6 +32,7 @@ export interface Profile {
   manager_name: string | null;
   employment_status: string | null;
   work_location: string | null;
+  profile_photo: string | null;
   addresses: Address[];
   emergency_contacts: EmergencyContact[];
 }
@@ -55,4 +56,7 @@ export const profileApi = {
     postal_code?: string;
     country?: string;
   }) => api.put<Profile>("/profile/address", data),
+  updatePhoto: (profile_photo: string) =>
+    api.put<Profile>("/profile/photo", { profile_photo }),
+  removePhoto: () => api.delete<Profile>("/profile/photo"),
 };

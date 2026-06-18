@@ -166,6 +166,26 @@ export default function Profile() {
     window.print();
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image too large. Maximum 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      try {
+        const updated = await profileApi.updatePhoto(dataUrl);
+        setProfile(updated);
+      } catch {
+        alert("Failed to upload photo.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div>
       <AsyncState loading={loading} error={error}>
@@ -192,11 +212,26 @@ export default function Profile() {
 
             <div className="profile-header-card">
               <div className="profile-header-avatar-container">
-                <img
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80"
-                  alt={profile.full_name}
-                  className="profile-header-avatar"
-                />
+                {profile.profile_photo ? (
+                  <img
+                    src={profile.profile_photo}
+                    alt={profile.full_name}
+                    className="profile-header-avatar"
+                  />
+                ) : (
+                  <div className="profile-header-avatar profile-header-avatar-initials">
+                    {profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                  </div>
+                )}
+                <label className="profile-photo-upload-btn" title="Change photo">
+                  <Pencil size={12} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    style={{ display: "none" }}
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
                 <div className="profile-header-status-dot" />
               </div>
               <div className="profile-header-info">

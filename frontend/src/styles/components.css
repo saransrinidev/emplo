@@ -1356,3 +1356,51 @@
   .audit-metrics-row, .org-metrics-row { grid-template-columns: repeat(2, 1fr); }
   .org-canvas-viewport { min-height: 300px; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROFILE PHOTO UPLOAD
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.profile-header-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, hsl(220 70% 45% / 0.15) 0%, hsl(220 70% 45% / 0.05) 100%);
+  border: 2px solid hsl(220 70% 45% / 0.25);
+  color: hsl(220 70% 45%);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.profile-photo-upload-btn {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  transition: transform 0.15s, background 0.15s;
+  z-index: 2;
+}
+
+.profile-photo-upload-btn:hover {
+  transform: scale(1.1);
+  background: var(--primary-dark);
+}
+
+.profile-header-avatar-container {
+  position: relative;
+  flex-shrink: 0;
+}

@@ -53,6 +53,7 @@ class EmployeeWithRoleOut(BaseModel):
     work_location: str | None = None
     manager_id: str | None = None
     role: str | None = None
+    profile_photo: str | None = None
 
 
 @router.get("/with-roles", response_model=list[EmployeeWithRoleOut])
@@ -86,6 +87,7 @@ def list_employees_with_roles(
             work_location=emp.work_location,
             manager_id=str(emp.manager_id) if emp.manager_id else None,
             role=role_name,
+            profile_photo=emp.profile_photo,
         ))
     return result
 
