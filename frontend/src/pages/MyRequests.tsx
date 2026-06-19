@@ -40,15 +40,19 @@ export default function MyRequests() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [filter, setFilter] = useState<TicketStatus | "">("");
-  const [tab, setTab] = useState<"my" | "all">("my");
+  const [tab, setTab] = useState<"my" | "team" | "all">("my");
   const toast = useToast();
   const { user } = useAuth();
   const isHr = user?.role === "hr_admin";
+  const isManager = user?.role === "manager";
 
   const load = () => {
     setLoading(true);
     const params = filter ? { status: filter as TicketStatus } : undefined;
-    const fetcher = (isHr && tab === "all") ? ticketsApi.listAll(params) : ticketsApi.my(params);
+    let fetcher;
+    if (isHr && tab === "all") fetcher = ticketsApi.listAll(params);
+    else if ((isManager || isHr) && tab === "team") fetcher = ticketsApi.team(params);
+    else fetcher = ticketsApi.my(params);
     fetcher
       .then(setTickets)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load requests"))
@@ -65,11 +69,16 @@ export default function MyRequests() {
     <div>
       <PageHeader title={isHr && tab === "all" ? "All Tickets" : "My Requests"} subtitle={isHr && tab === "all" ? "Manage employee requests and tickets." : "Track all your requests and tickets in one place."} />
 
-      {/* HR tab toggle */}
-      {isHr && (
+      {/* Tab toggle */}
+      {(isHr || isManager) && (
         <div className="premium-tabs-container" style={{ marginBottom: 16 }}>
           <button className={`premium-tab-btn ${tab === "my" ? "premium-tab-btn-active" : ""}`} onClick={() => setTab("my")}>My Requests</button>
-          <button className={`premium-tab-btn ${tab === "all" ? "premium-tab-btn-active" : ""}`} onClick={() => setTab("all")}>All Tickets (HR)</button>
+          {(isManager || isHr) && (
+            <button className={`premium-tab-btn ${tab === "team" ? "premium-tab-btn-active" : ""}`} onClick={() => setTab("team")}>Team Tickets</button>
+          )}
+          {isHr && (
+            <button className={`premium-tab-btn ${tab === "all" ? "premium-tab-btn-active" : ""}`} onClick={() => setTab("all")}>All Tickets (HR)</button>
+          )}
         </div>
       )}
 
