@@ -1,6 +1,6 @@
 import { api } from "./client";
 
-export type TicketType = "leave" | "document_update" | "profile_edit" | "certification" | "salary_query" | "general";
+export type TicketType = "leave" | "wfh" | "document_update" | "profile_edit" | "certification" | "salary_query" | "general";
 export type TicketPriority = "low" | "medium" | "high";
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed" | "rejected";
 

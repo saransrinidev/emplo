@@ -10,6 +10,7 @@ import { useToast } from "../components/Toast";
 
 const TYPE_LABELS: Record<TicketType, string> = {
   leave: "Leave Request",
+  wfh: "Work From Home",
   document_update: "Document Update",
   profile_edit: "Profile Edit",
   certification: "Certification",
@@ -177,6 +178,7 @@ function CreateTicketModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <label>Request Type</label>
             <select className="input" value={ticketType} onChange={(e) => setTicketType(e.target.value as TicketType)}>
               <option value="leave">Leave Request</option>
+              <option value="wfh">Work From Home</option>
               <option value="document_update">Document Update</option>
               <option value="profile_edit">Profile Edit</option>
               <option value="certification">Certification</option>

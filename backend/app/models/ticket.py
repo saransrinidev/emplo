@@ -12,6 +12,7 @@ from app.db.base import Base, TimestampMixin, UUIDMixin
 
 class TicketType(str, enum.Enum):
     leave = "leave"
+    wfh = "wfh"
     document_update = "document_update"
     profile_edit = "profile_edit"
     certification = "certification"
