@@ -286,29 +286,6 @@ def add_comment(
     )
 
 
-# ─── Manager: View team tickets ──────────────────────────────────────────────
-
-@router.get("/team", response_model=list[TicketOut])
-def team_tickets(
-    status: TicketStatus | None = None,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles(RoleName.manager, RoleName.hr_admin)),
-) -> list[TicketOut]:
-    """Manager sees tickets from their direct reports."""
-    if not user.employee_id:
-        return []
-    # Get direct report IDs
-    report_ids = list(db.scalars(
-        select(Employee.id).where(Employee.manager_id == user.employee_id)
-    ).all())
-    if not report_ids:
-        return []
-    stmt = select(Ticket).where(Ticket.employee_id.in_(report_ids)).order_by(Ticket.created_at.desc())
-    if status:
-        stmt = stmt.where(Ticket.status == status)
-    return [_to_out(t, db) for t in db.scalars(stmt).all()]
-
-
 # ─── HR: List all tickets ─────────────────────────────────────────────────────
 
 @router.get("", response_model=list[TicketOut])

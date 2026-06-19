@@ -135,14 +135,14 @@ export default function MyRequests() {
                       {STATUS_ICONS[t.status]}
                       <strong style={{ fontSize: 14 }}>{t.ticket_number}</strong>
                       <span className="badge" style={{ fontSize: 11, background: "var(--bg-secondary)" }}>
-                        {TYPE_LABELS[t.ticket_type]}
+                        {TYPE_LABELS[t.ticket_type] || t.ticket_type}
                       </span>
-                      <span style={{ fontSize: 11, color: PRIORITY_COLORS[t.priority] }}>●</span>
+                      <span style={{ fontSize: 11, color: PRIORITY_COLORS[t.priority] || "var(--text-muted)" }}>●</span>
                     </div>
                     <div style={{ fontSize: 14 }}>{t.subject}</div>
                     <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 4 }}>
-                      {t.employee_name && <span>{t.employee_name} · </span>}
-                      {new Date(t.created_at).toLocaleDateString()} · {t.status.replace("_", " ")}
+                      {t.employee_name && <span>{String(t.employee_name)} · </span>}
+                      {new Date(t.created_at).toLocaleDateString()} · {String(t.status).replace("_", " ")}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
@@ -277,7 +277,7 @@ function TicketDetailModal({ ticket, onClose, onUpdated }: { ticket: Ticket; onC
           <div>
             <h2 style={{ marginBottom: 4 }}>{ticket.ticket_number}</h2>
             <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
-              {TYPE_LABELS[ticket.ticket_type]} · {ticket.status.replace("_", " ")} · {new Date(ticket.created_at).toLocaleDateString()}
+              {TYPE_LABELS[ticket.ticket_type] || ticket.ticket_type} · {String(ticket.status).replace("_", " ")} · {new Date(ticket.created_at).toLocaleDateString()}
             </div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
