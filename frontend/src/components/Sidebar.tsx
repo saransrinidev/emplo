@@ -49,7 +49,7 @@ const NAV_ITEMS: NavItem[] = [
     to: "/my-requests",
     label: "My Requests",
     icon: <Ticket />,
-    roles: ["employee", "manager"],
+    roles: ["employee", "manager", "hr_admin"],
   },
   {
     to: "/messages",

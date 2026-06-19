@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Plus, MessageSquare, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { ticketsApi, type Ticket, type TicketType, type TicketStatus, type TicketPriority } from "../api/tickets";
 import { ApiError } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
@@ -39,18 +40,22 @@ export default function MyRequests() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [filter, setFilter] = useState<TicketStatus | "">("");
+  const [tab, setTab] = useState<"my" | "all">("my");
   const toast = useToast();
+  const { user } = useAuth();
+  const isHr = user?.role === "hr_admin";
 
   const load = () => {
     setLoading(true);
     const params = filter ? { status: filter as TicketStatus } : undefined;
-    ticketsApi.my(params)
+    const fetcher = (isHr && tab === "all") ? ticketsApi.listAll(params) : ticketsApi.my(params);
+    fetcher
       .then(setTickets)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load requests"))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [filter]);
+  useEffect(() => { load(); }, [filter, tab]);
 
   const openTicket = (ticket: Ticket) => {
     ticketsApi.get(ticket.id).then(setSelectedTicket).catch(() => setSelectedTicket(ticket));
@@ -58,7 +63,15 @@ export default function MyRequests() {
 
   return (
     <div>
-      <PageHeader title="My Requests" subtitle="Track all your requests and tickets in one place." />
+      <PageHeader title={isHr && tab === "all" ? "All Tickets" : "My Requests"} subtitle={isHr && tab === "all" ? "Manage employee requests and tickets." : "Track all your requests and tickets in one place."} />
+
+      {/* HR tab toggle */}
+      {isHr && (
+        <div className="premium-tabs-container" style={{ marginBottom: 16 }}>
+          <button className={`premium-tab-btn ${tab === "my" ? "premium-tab-btn-active" : ""}`} onClick={() => setTab("my")}>My Requests</button>
+          <button className={`premium-tab-btn ${tab === "all" ? "premium-tab-btn-active" : ""}`} onClick={() => setTab("all")}>All Tickets (HR)</button>
+        </div>
+      )}
 
       <div className="row" style={{ marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <button className="btn btn-sm" onClick={() => setShowCreate(true)}>
@@ -119,10 +132,22 @@ export default function MyRequests() {
                     </div>
                     <div style={{ fontSize: 14 }}>{t.subject}</div>
                     <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 4 }}>
+                      {t.employee_name && <span>{t.employee_name} · </span>}
                       {new Date(t.created_at).toLocaleDateString()} · {t.status.replace("_", " ")}
                     </div>
                   </div>
-                  <MessageSquare size={16} color="var(--text-tertiary)" />
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                    {isHr && tab === "all" && t.status === "open" && (
+                      <button className="btn btn-sm" style={{ fontSize: 11, padding: "4px 8px" }} onClick={async () => { await ticketsApi.updateStatus(t.id, "in_progress"); toast.success("Ticket accepted."); load(); }}>Accept</button>
+                    )}
+                    {isHr && tab === "all" && (t.status === "open" || t.status === "in_progress") && (
+                      <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "4px 8px", color: "hsl(var(--success))" }} onClick={async () => { await ticketsApi.updateStatus(t.id, "resolved", "Resolved by HR"); toast.success("Ticket resolved."); load(); }}>Resolve</button>
+                    )}
+                    {isHr && tab === "all" && t.status === "open" && (
+                      <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "4px 8px", color: "hsl(var(--destructive))" }} onClick={async () => { await ticketsApi.updateStatus(t.id, "rejected", "Rejected by HR"); toast.info("Ticket rejected."); load(); }}>Reject</button>
+                    )}
+                    <MessageSquare size={16} color="var(--text-tertiary)" />
+                  </div>
                 </div>
               </div>
             ))}
