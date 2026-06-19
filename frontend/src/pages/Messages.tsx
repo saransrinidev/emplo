@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Send, MessageSquare, ArrowLeft } from "lucide-react";
 import { messagesApi, type Message as MessageType, type ConversationPreview, type Contact } from "../api/messages";
 import { useAuth } from "../context/AuthContext";
@@ -14,12 +14,32 @@ export default function Messages() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showContacts, setShowContacts] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     Promise.all([messagesApi.conversations(), messagesApi.contacts()])
       .then(([convos, cts]) => { setConversations(convos); setContacts(cts); })
       .finally(() => setLoading(false));
   }, []);
+
+  // Auto-poll for new messages every 3s when a conversation is open
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (!selectedId) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const msgs = await messagesApi.getConversation(selectedId);
+        setMessages(msgs);
+      } catch { /* ignore */ }
+    }, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [selectedId]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const openConversation = async (empId: string) => {
     setSelectedId(empId);
@@ -137,6 +157,7 @@ export default function Messages() {
                     </div>
                   );
                 })}
+                <div ref={messagesEndRef} />
               </div>
               {/* Input */}
               <div style={{ padding: "10px 16px", borderTop: "1px solid hsl(var(--border))", display: "flex", gap: 8 }}>
