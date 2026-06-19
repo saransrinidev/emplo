@@ -233,9 +233,14 @@ def get_contacts(
     if not emp:
         return []
 
+    # HR can message anyone — show all employees
+    if user.role.name == RoleName.hr_admin:
+        all_emps = list(db.scalars(select(Employee).where(Employee.id != user.employee_id).order_by(Employee.full_name)).all())
+        return [{"id": str(e.id), "name": e.full_name, "role": e.designation or "Employee", "photo": e.profile_photo} for e in all_emps]
+
     contacts: list[dict] = []
 
-    # Always include: own manager
+    # Own manager
     if emp.manager_id:
         mgr = db.get(Employee, emp.manager_id)
         if mgr:
