@@ -204,6 +204,35 @@ def my_tickets(
     return [_to_out(t, db) for t in db.scalars(stmt).all()]
 
 
+# ─── Manager: View team tickets ──────────────────────────────────────────────
+
+@router.get("/team", response_model=list[TicketOut])
+def get_team_tickets(
+    status: TicketStatus | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(RoleName.manager, RoleName.hr_admin)),
+) -> list[TicketOut]:
+    """Manager sees tickets from their direct reports. HR sees all."""
+    if not user.employee_id:
+        return []
+    if user.role.name == RoleName.hr_admin:
+        # HR sees all tickets
+        stmt = select(Ticket).order_by(Ticket.created_at.desc())
+        if status:
+            stmt = stmt.where(Ticket.status == status)
+        return [_to_out(t, db) for t in db.scalars(stmt).all()]
+    # Manager: get direct report IDs
+    report_ids = list(db.scalars(
+        select(Employee.id).where(Employee.manager_id == user.employee_id)
+    ).all())
+    if not report_ids:
+        return []
+    stmt = select(Ticket).where(Ticket.employee_id.in_(report_ids)).order_by(Ticket.created_at.desc())
+    if status:
+        stmt = stmt.where(Ticket.status == status)
+    return [_to_out(t, db) for t in db.scalars(stmt).all()]
+
+
 # ─── Employee: View single ticket with comments ──────────────────────────────
 
 @router.get("/{ticket_id}", response_model=TicketOut)
