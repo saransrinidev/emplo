@@ -21,7 +21,7 @@ class EmployeeBase(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
-    pass
+    initial_salary: float | None = None  # If provided, creates the first salary revision
 
 
 class EmployeeUpdate(BaseModel):

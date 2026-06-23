@@ -73,204 +73,6 @@ function money(value: string | null): string {
   return Number.isNaN(n) ? value : `₹${n.toLocaleString()}`;
 }
 
-
-
-function WelcomeBanner({ taskCount }: { taskCount?: number }) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  if (!user) return null;
-
-  const hours = new Date().getHours();
-  let greetingWord = "Good morning";
-  if (hours >= 12 && hours < 17) {
-    greetingWord = "Good afternoon";
-  } else if (hours >= 17 && hours < 22) {
-    greetingWord = "Good evening";
-  } else if (hours >= 22 || hours < 4) {
-    greetingWord = "Good night";
-  }
-
-  const formattedDate = new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
-
-  // Determine button target and text based on role
-  let btnText = "View My Tasks";
-  let btnTarget = "/notifications";
-  if (user.role === "employee") {
-    btnText = "View My Tasks";
-    btnTarget = "/certifications";
-  } else if (user.role === "hr_admin") {
-    btnText = "View My Tasks";
-    btnTarget = "/notifications";
-  } else if (user.role === "manager") {
-    btnText = "View Team Alerts";
-    btnTarget = "/notifications";
-  }
-
-  const hasTasks = taskCount !== undefined && taskCount > 0;
-  const subtitleText = hasTasks
-    ? `Welcome back! You have ${taskCount} task${taskCount > 1 ? "s" : ""} to complete today.`
-    : "Welcome back! Your portal is up to date and running fine.";
-
-  // Attendance synchronization with localStorage
-  const checkInKey = `emplo_check_in_time_${user.id}`;
-  const modeKey = `emplo_work_mode_${user.id}`;
-  const logsKey = `emplo_time_logs_${user.id}`;
-
-  const [checkedIn, setCheckedIn] = useState(false);
-  const [checkInTime, setCheckInTime] = useState<Date | null>(null);
-  const [elapsedTimeStr, setElapsedTimeStr] = useState("00h 00m 00s");
-
-  // Load state on mount and monitor keys
-  useEffect(() => {
-    const stored = localStorage.getItem(checkInKey);
-    if (stored) {
-      setCheckedIn(true);
-      setCheckInTime(new Date(stored));
-    } else {
-      setCheckedIn(false);
-      setCheckInTime(null);
-    }
-  }, [checkInKey]);
-
-  // Set up running timer when checked in
-  useEffect(() => {
-    if (!checkedIn || !checkInTime) {
-      setElapsedTimeStr("00h 00m 00s");
-      return;
-    }
-
-    const updateTimer = () => {
-      const diff = new Date().getTime() - checkInTime.getTime();
-      const totalSecs = Math.floor(diff / 1000);
-      const hrs = Math.floor(totalSecs / 3600);
-      const mins = Math.floor((totalSecs % 3600) / 60);
-      const secs = totalSecs % 60;
-      
-      const pad = (num: number) => String(num).padStart(2, "0");
-      setElapsedTimeStr(`${pad(hrs)}h ${pad(mins)}m ${pad(secs)}s`);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [checkedIn, checkInTime]);
-
-  const handleCheckIn = () => {
-    const now = new Date();
-    localStorage.setItem(checkInKey, now.toISOString());
-    localStorage.setItem(modeKey, "Office");
-
-    // Add log
-    const storedLogs = localStorage.getItem(logsKey);
-    const logs = storedLogs ? JSON.parse(storedLogs) : [];
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    logs.push({ type: "Check In (Office)", time: timeStr });
-    localStorage.setItem(logsKey, JSON.stringify(logs));
-
-    setCheckedIn(true);
-    setCheckInTime(now);
-  };
-
-  const handleCheckOut = () => {
-    const now = new Date();
-    // Add log
-    const storedLogs = localStorage.getItem(logsKey);
-    const logs = storedLogs ? JSON.parse(storedLogs) : [];
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    logs.push({ type: "Check Out", time: timeStr });
-    localStorage.setItem(logsKey, JSON.stringify(logs));
-
-    localStorage.removeItem(checkInKey);
-    setCheckedIn(false);
-    setCheckInTime(null);
-  };
-
-  return (
-    <div className="welcome-banner">
-      {/* Decorative backdrop shapes */}
-      <div className="welcome-banner-circle welcome-banner-circle-1" />
-      <div className="welcome-banner-circle welcome-banner-circle-2" />
-      <div className="welcome-banner-circle welcome-banner-circle-3" />
-
-      <div className="welcome-banner-content">
-        <span className="welcome-banner-date">{formattedDate}</span>
-        <h1 className="welcome-banner-title" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {greetingWord}, {user.name}! <span className="hand-wave-emoji">👋</span>
-        </h1>
-        <p className="welcome-banner-subtitle">
-          {subtitleText}
-        </p>
-        <button
-          className="welcome-banner-btn"
-          onClick={() => navigate(btnTarget)}
-        >
-          {btnText} <ArrowRight size={14} style={{ marginLeft: 6 }} />
-        </button>
-      </div>
-
-      <div className="welcome-banner-profile-panel">
-        <div className="welcome-banner-profile-avatar" style={{ background: "rgba(255, 255, 255, 0.15)", border: "1.5px solid rgba(255, 255, 255, 0.5)", color: "#ffffff", boxShadow: "none" }}>
-          {checkedIn ? <Timer size={22} /> : <Clock size={22} />}
-        </div>
-        <div className="welcome-banner-profile-info" style={{ display: "flex", flexDirection: "column" }}>
-          {checkedIn ? (
-            <>
-              <h4 className="welcome-banner-profile-name">Working Time</h4>
-              <span className="welcome-banner-profile-email" style={{ fontSize: "16px", fontWeight: "700", letterSpacing: "0.02em", color: "#ffffff", margin: "4px 0" }}>
-                {elapsedTimeStr}
-              </span>
-              <div className="welcome-banner-profile-meta" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span className="welcome-banner-profile-role" style={{ background: "rgba(16, 185, 129, 0.2)", borderColor: "rgba(16, 185, 129, 0.3)", color: "#10b981" }}>
-                  Active
-                </span>
-                <button 
-                  onClick={handleCheckOut} 
-                  className="welcome-banner-punch-out-btn"
-                >
-                  <LogOut size={12} /> Punch Out
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <h4 className="welcome-banner-profile-name">Daily Check-In</h4>
-              <span className="welcome-banner-profile-email" style={{ fontSize: "11px", opacity: 0.9 }}>
-                You are currently offline
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "4px" }}>
-                <button 
-                  onClick={handleCheckIn} 
-                  className="welcome-banner-punch-in-btn"
-                >
-                  <LogIn size={13} /> Punch In
-                </button>
-              </div>
-              <div className="welcome-banner-profile-status" style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.8)", marginTop: "8px" }}>
-                {taskCount !== undefined && taskCount > 0 ? (
-                  <>
-                    <span className="welcome-banner-profile-dot" style={{ backgroundColor: "#fbbf24" }} />
-                    <span>{taskCount} pending alert{taskCount > 1 ? "s" : ""}</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="welcome-banner-profile-dot" />
-                    <span>System Secure</span>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* Upcoming Reminders */
 function UpcomingReminders() {
   const [certs, setCerts] = useState<Certification[]>([]);
@@ -289,7 +91,7 @@ function UpcomingReminders() {
           .slice(0, 4);
         setCerts(withExpiry);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -358,17 +160,19 @@ function RecentNotifications() {
     notificationsApi
       .list()
       .then((data) => setNotifications(data.slice(0, 5)))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
-  function getIcon(title: string) {
+  function getAccent(title: string): { color: string; icon: React.ReactNode } {
     const lower = title.toLowerCase();
-    if (lower.includes("approved") || lower.includes("verified"))
-      return <CheckCircle2 size={16} className="notif-icon notif-icon-success" />;
-    if (lower.includes("rejected") || lower.includes("expired"))
-      return <XCircle size={16} className="notif-icon notif-icon-danger" />;
-    return <Info size={16} className="notif-icon notif-icon-info" />;
+    if (lower.includes("approved") || lower.includes("verified") || lower.includes("confirmed"))
+      return { color: "hsl(var(--success))", icon: <CheckCircle2 size={16} /> };
+    if (lower.includes("rejected") || lower.includes("expired") || lower.includes("reverted"))
+      return { color: "hsl(var(--destructive))", icon: <XCircle size={16} /> };
+    if (lower.includes("submitted") || lower.includes("request") || lower.includes("forwarded"))
+      return { color: "hsl(var(--warning, 45 93% 47%))", icon: <Clock size={16} /> };
+    return { color: "var(--primary-color)", icon: <Bell size={16} /> };
   }
 
   function timeAgo(dateStr: string): string {
@@ -379,7 +183,9 @@ function RecentNotifications() {
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }
 
   return (
@@ -401,16 +207,31 @@ function RecentNotifications() {
             <p>No recent activity</p>
           </div>
         )}
-        {notifications.map((n) => (
-          <div key={n.id} className={`notif-item ${n.is_read ? "" : "notif-unread"}`}>
-            {getIcon(n.title)}
-            <div className="notif-content">
-              <div className="notif-title">{n.title}</div>
-              <div className="notif-message">{n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "")}</div>
-            </div>
-            <div className="notif-time">{timeAgo(n.created_at)}</div>
+        {!loading && notifications.length > 0 && (
+          <div className="activity-timeline">
+            {notifications.map((n, idx) => {
+              const { color, icon } = getAccent(n.title);
+              const cleanMsg = n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "");
+              return (
+                <div key={n.id} className={`activity-item ${!n.is_read ? "activity-unread" : ""}`}>
+                  <div className="activity-indicator">
+                    <div className="activity-dot" style={{ background: color, boxShadow: `0 0 0 3px ${color}20` }}>
+                      {icon}
+                    </div>
+                    {idx < notifications.length - 1 && <div className="activity-line" />}
+                  </div>
+                  <div className="activity-content">
+                    <div className="activity-header">
+                      <span className="activity-title">{n.title}</span>
+                      <span className="activity-time">{timeAgo(n.created_at)}</span>
+                    </div>
+                    <p className="activity-message">{cleanMsg}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

@@ -88,3 +88,4 @@ backend/
     seed.py       Seed HR admin (--reset to wipe first)
   uploads/        Uploaded files (gitignored except .gitkeep)
 ```
+ 

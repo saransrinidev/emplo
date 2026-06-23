@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { Pencil, ShieldCheck, Clock, Send, User, Briefcase, Calendar, MapPin, Download, Mail } from "lucide-react";
+import { Pencil, ShieldCheck, Clock, Send } from "lucide-react";
 import { profileApi, type Address, type Profile as ProfileType, type EditableSections } from "../api/profile";
 import { editRequestsApi, type EditRequest } from "../api/editRequests";
 import { ApiError } from "../api/client";
@@ -171,67 +170,7 @@ export default function Profile() {
       <AsyncState loading={loading} error={error}>
         {profile && (
           <div className="stack">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <h1 className="page-header-title" style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>My Profile</h1>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>
-                  <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none" }}>Home</Link>
-                  <span>&gt;</span>
-                  <span style={{ color: "var(--primary-color)" }}>My Profile</span>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <button className="btn btn-outline" style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8, height: 38, border: "1px solid #4f46e5", color: "#4f46e5", background: "transparent" }} onClick={handleDownloadProfile}>
-                  <Download size={15} /> Download Profile
-                </button>
-                <button className="btn" style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8, height: 38, background: "#4f46e5", color: "#ffffff", border: "none" }} onClick={handleEditClick}>
-                  <Pencil size={15} /> Edit Profile
-                </button>
-              </div>
-            </div>
-
-            <div className="profile-header-card">
-              <svg className="profile-header-bg-svg" viewBox="0 0 400 200" preserveAspectRatio="none">
-                <path className="profile-header-bg-wave-1" d="M 0,0 C 150,20 200,120 400,200 L 400,0 Z" />
-                <path className="profile-header-bg-wave-2" d="M 100,0 C 200,40 250,100 400,170 L 400,0 Z" />
-              </svg>
-               <div className="profile-header-avatar-container">
-                 <img
-                   src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&h=250&q=80"
-                   alt={profile.full_name}
-                   className="profile-header-avatar"
-                 />
-                 <div className="profile-header-status-dot" />
-               </div>
-               <div className="profile-header-info">
-                 <h2 className="profile-header-name">{profile.full_name}</h2>
-                 <span className="profile-header-designation">{profile.designation ?? "—"}</span>
-                 <div className="profile-header-meta">
-                   <div className="profile-meta-tag">
-                     <User size={13} />
-                     <span>{profile.employee_code}</span>
-                   </div>
-                   <div className="profile-meta-tag">
-                     <Briefcase size={13} />
-                     <span>{profile.department ?? "—"}</span>
-                   </div>
-                   <div className="profile-meta-tag">
-                     <Calendar size={13} />
-                     <span>{profile.date_of_joining ? `Joined on ${formatDateJoined(profile.date_of_joining)}` : "—"}</span>
-                   </div>
-                   <div className="profile-meta-tag">
-                     <Mail size={13} />
-                     <span>{profile.email}</span>
-                   </div>
-                 </div>
-               </div>
-              <div className="profile-header-actions">
-                <span className="profile-header-badge">
-                  {profile.employment_status ?? "Active"}
-                </span>
-              </div>
-            </div>
-
+            {/* Temporary access banner */}
             {hasAnyPermission && (
               <div className="access-banner">
                 <ShieldCheck size={20} />

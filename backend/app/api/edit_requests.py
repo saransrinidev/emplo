@@ -191,7 +191,14 @@ def my_edit_requests(
         .where(EditAccessRequest.employee_id == user.employee_id)
         .order_by(EditAccessRequest.created_at.desc())
     )
-    return [_to_out(r, db) for r in db.scalars(stmt).all()]
+    requests = list(db.scalars(stmt).all())
+    # Auto-expire requests whose window has passed
+    now = datetime.now(timezone.utc)
+    for req in requests:
+        if req.status == EditRequestStatus.approved and req.window_end and now > req.window_end:
+            req.status = EditRequestStatus.expired
+    db.commit()
+    return [_to_out(r, db) for r in requests]
 
 
 # ─── HR: View all pending requests ───────────────────────────────────────────

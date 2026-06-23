@@ -17,6 +17,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  Ticket,
 } from "lucide-react";
 import { useAuth, type Role } from "../context/AuthContext";
 import { notificationsApi } from "../api/notifications";
@@ -42,6 +43,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "Profile",
     icon: <User />,
     roles: ["employee", "manager", "hr_admin"],
+  },
+  {
+    to: "/my-requests",
+    label: "My Requests",
+    icon: <Ticket />,
+    roles: ["employee", "manager"],
   },
   {
     to: "/documents",

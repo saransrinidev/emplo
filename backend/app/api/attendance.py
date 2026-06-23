@@ -22,8 +22,78 @@ from app.schemas.leave_request import (
     LeaveRequestCreate,
     LeaveRequestOut,
 )
-
 router = APIRouter(prefix="/attendance", tags=["attendance"])
+
+
+# ─── Leave balance helpers ────────────────────────────────────────────────────
+
+def _calculate_days(lr: LeaveRequest) -> float:
+    """Calculate number of leave days from start_date to end_date (inclusive)."""
+    return float((lr.end_date - lr.start_date).days + 1)
+
+
+def _update_leave_balance_on_forward(db: Session, lr: LeaveRequest) -> None:
+    """When manager forwards: increment 'pending' on the balance."""
+    from app.models.leave_balance import LeaveBalance
+    from app.models.leave_type import LeaveType
+    from datetime import date
+    days = _calculate_days(lr)
+    lt = db.scalar(select(LeaveType).where(LeaveType.code == lr.leave_type.value))
+    if not lt:
+        return
+    year = date.today().year
+    bal = db.scalar(
+        select(LeaveBalance).where(
+            LeaveBalance.employee_id == lr.employee_id,
+            LeaveBalance.leave_type_id == lt.id,
+            LeaveBalance.year == year,
+        )
+    )
+    if bal:
+        bal.pending = float(bal.pending) + days
+
+
+def _update_leave_balance_on_approve(db: Session, lr: LeaveRequest) -> None:
+    """When HR approves: move from 'pending' to 'used'."""
+    from app.models.leave_balance import LeaveBalance
+    from app.models.leave_type import LeaveType
+    from datetime import date
+    days = _calculate_days(lr)
+    lt = db.scalar(select(LeaveType).where(LeaveType.code == lr.leave_type.value))
+    if not lt:
+        return
+    year = date.today().year
+    bal = db.scalar(
+        select(LeaveBalance).where(
+            LeaveBalance.employee_id == lr.employee_id,
+            LeaveBalance.leave_type_id == lt.id,
+            LeaveBalance.year == year,
+        )
+    )
+    if bal:
+        bal.pending = max(0, float(bal.pending) - days)
+        bal.used = float(bal.used) + days
+
+
+def _update_leave_balance_on_reject(db: Session, lr: LeaveRequest) -> None:
+    """When HR rejects: release 'pending' days."""
+    from app.models.leave_balance import LeaveBalance
+    from app.models.leave_type import LeaveType
+    from datetime import date
+    days = _calculate_days(lr)
+    lt = db.scalar(select(LeaveType).where(LeaveType.code == lr.leave_type.value))
+    if not lt:
+        return
+    year = date.today().year
+    bal = db.scalar(
+        select(LeaveBalance).where(
+            LeaveBalance.employee_id == lr.employee_id,
+            LeaveBalance.leave_type_id == lt.id,
+            LeaveBalance.year == year,
+        )
+    )
+    if bal:
+        bal.pending = max(0, float(bal.pending) - days)
 
 
 def _to_out(lr: LeaveRequest, db: Session) -> LeaveRequestOut:
@@ -126,7 +196,7 @@ def team_leave_requests(
     if user.role.name == RoleName.hr_admin:
         stmt = (
             select(LeaveRequest)
-            .where(LeaveRequest.status.in_([LeaveStatus.forwarded_to_hr, LeaveStatus.pending]))
+            .where(LeaveRequest.status == LeaveStatus.forwarded_to_hr)
             .order_by(LeaveRequest.created_at.desc())
         )
     else:
@@ -191,6 +261,7 @@ def manager_action(
 
     if payload.action == "forward":
         lr.status = LeaveStatus.forwarded_to_hr
+        _update_leave_balance_on_forward(db, lr)
     else:
         lr.status = LeaveStatus.rejected
 
@@ -238,8 +309,12 @@ def hr_action(
 
     if payload.action == "approve":
         lr.status = LeaveStatus.approved
+        # Update leave balance: increment 'used', decrement 'pending'
+        _update_leave_balance_on_approve(db, lr)
     else:
         lr.status = LeaveStatus.rejected
+        # Release pending balance
+        _update_leave_balance_on_reject(db, lr)
 
     lr.hr_id = user.id
     lr.hr_remarks = payload.remarks

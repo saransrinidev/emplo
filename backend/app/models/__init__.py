@@ -25,6 +25,7 @@ from app.models.performance import PerformanceReview
 from app.models.profile_change_request import ProfileChangeRequest
 from app.models.role import Role
 from app.models.salary import SalaryRevision
+from app.models.ticket import Ticket, TicketComment
 from app.models.user import User
 
 __all__ = [
@@ -52,4 +53,6 @@ __all__ = [
     "EmployeeBankAccount",
     "ProfileChangeRequest",
     "PasswordResetToken",
+    "Ticket",
+    "TicketComment",
 ]

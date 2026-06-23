@@ -32,7 +32,9 @@ def list_employees(
             | Employee.email.ilike(like)
         )
     # Managers see only their direct reports.
-    if user.role.name == RoleName.manager and user.employee_id:
+    if user.role.name == RoleName.manager:
+        if not user.employee_id:
+            raise HTTPException(status_code=400, detail="Manager has no employee record linked")
         stmt = stmt.where(Employee.manager_id == user.employee_id)
     return list(db.scalars(stmt).all())
 
@@ -114,13 +116,39 @@ def create_employee(
         raise HTTPException(status_code=400, detail="Employee code already exists")
     if payload.manager_id is not None and db.get(Employee, payload.manager_id) is None:
         raise HTTPException(status_code=400, detail="Manager not found")
-    employee = Employee(**payload.model_dump())
+
+    # Separate initial_salary from the employee fields
+    initial_salary = payload.initial_salary
+    employee_data = payload.model_dump(exclude={"initial_salary"})
+    employee = Employee(**employee_data)
     db.add(employee)
     db.flush()
 
+    # Create initial salary revision if salary is provided
+    if initial_salary and initial_salary > 0:
+        from app.models.salary import SalaryRevision
+        from app.models.enums import ApprovalStatus
+        from datetime import date
+
+        revision = SalaryRevision(
+            employee_id=employee.id,
+            effective_date=payload.date_of_joining or date.today(),
+            previous_salary=None,
+            revised_salary=initial_salary,
+            revision_percentage=None,
+            comments="Initial Salary",
+            approval_status=ApprovalStatus.approved,
+            created_by=user.id,
+        )
+        db.add(revision)
+
     from app.api.audit_helper import log_action
     log_action(db, actor_id=user.id, action="create", entity_type="employee",
-               entity_id=str(employee.id), changes={"full_name": employee.full_name, "email": employee.email})
+               entity_id=str(employee.id), changes={
+                   "full_name": employee.full_name,
+                   "email": employee.email,
+                   "initial_salary": str(initial_salary) if initial_salary else None,
+               })
 
     db.commit()
     db.refresh(employee)
@@ -189,6 +217,7 @@ def bulk_import_employees(
                     try:
                         emp_data[date_field] = date_type.fromisoformat(val)
                     except ValueError:
+                        errors.append(f"{row_label}: Invalid date format for {date_field}: '{val}' (use YYYY-MM-DD)")
                         emp_data[date_field] = None
 
             employee = Employee(**emp_data)

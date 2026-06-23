@@ -1,27 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  ChevronDown,
-  ChevronRight,
-  Users,
-  Briefcase,
-  User,
-  Search,
-  Maximize2,
-  Minimize2,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  X,
-  ExternalLink,
-  Mail,
-  Calendar,
-  Hash,
-  LayoutGrid,
-  List,
-  Copy,
-  Check
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import { employeesApi, type Employee } from "../api/employees";
 import AsyncState from "../components/AsyncState";
 import PageHeader from "../components/PageHeader";
@@ -32,15 +9,9 @@ interface TreeNode {
   children: TreeNode[];
 }
 
-function buildTree(employees: Employee[]): {
-  roots: TreeNode[];
-  unassigned: Employee[];
-  allManagers: string[];
-  parentMap: Map<string, string>
-} {
+function buildTree(employees: Employee[]): { roots: TreeNode[]; unassigned: Employee[] } {
   const map = new Map<string, TreeNode>();
   const roots: TreeNode[] = [];
-  const parentMap = new Map<string, string>();
 
   for (const emp of employees) {
     map.set(emp.id, { employee: emp, children: [] });
@@ -80,102 +51,7 @@ function buildTree(employees: Employee[]): {
 export default function OrgChart() {
   const { data, loading, error } = useApi(() => employeesApi.list());
   const employees = data ?? [];
-  const { roots, unassigned, allManagers, parentMap } = buildTree(employees);
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"flow" | "tree">("flow");
-  const [zoom, setZoom] = useState<number>(1.0);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [isCopied, setIsCopied] = useState<boolean>(false);
-
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [startY, setStartY] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
-
-  const hasInitializedRef = useRef(false);
-
-  useEffect(() => {
-    if (allManagers.length > 0 && !hasInitializedRef.current) {
-      setExpandedNodes(new Set(allManagers));
-      hasInitializedRef.current = true;
-    }
-  }, [allManagers]);
-
-  useEffect(() => {
-    if (!searchQuery.trim()) return;
-
-    const matchedEmpIds = employees.filter(emp =>
-      emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase()))
-    ).map(emp => emp.id);
-
-    const toExpand = new Set(expandedNodes);
-
-    for (const empId of matchedEmpIds) {
-      let currentId = empId;
-      while (parentMap.has(currentId)) {
-        const managerId = parentMap.get(currentId)!;
-        toExpand.add(managerId);
-        currentId = managerId;
-      }
-    }
-
-    setExpandedNodes(toExpand);
-  }, [searchQuery]);
-
-  const toggleNode = (id: string) => {
-    setExpandedNodes(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const handleExpandAll = () => setExpandedNodes(new Set(allManagers));
-  const handleCollapseAll = () => setExpandedNodes(new Set());
-  const handleSelectEmployee = (emp: Employee) => setSelectedEmployee(emp);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (viewportRef.current) {
-      setIsDragging(true);
-      setStartX(e.pageX - viewportRef.current.offsetLeft);
-      setStartY(e.pageY - viewportRef.current.offsetTop);
-      setScrollLeft(viewportRef.current.scrollLeft);
-      setScrollTop(viewportRef.current.scrollTop);
-    }
-  };
-
-  const handleMouseLeave = () => setIsDragging(false);
-  const handleMouseUp = () => setIsDragging(false);
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !viewportRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - viewportRef.current.offsetLeft;
-    const y = e.pageY - viewportRef.current.offsetTop;
-    const walkX = (x - startX) * 1.5;
-    const walkY = (y - startY) * 1.5;
-    viewportRef.current.scrollLeft = scrollLeft - walkX;
-    viewportRef.current.scrollTop = scrollTop - walkY;
-  };
-
-  const copyEmail = (email: string) => {
-    navigator.clipboard.writeText(email);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
-  };
-
-  const totalEmployees = employees.length;
-  const totalManagers = allManagers.length;
-  const totalUnassigned = unassigned.length;
-  const avgReports = totalManagers > 0
-    ? (employees.filter(e => e.manager_id).length / totalManagers).toFixed(1)
-    : "0.0";
+  const { roots, unassigned } = buildTree(employees);
 
   return (
     <div>

@@ -10,36 +10,6 @@ import { notificationsApi } from "../api/notifications";
 export default function Layout() {
   const { theme, toggleTheme } = useTheme();
   const { mobileOpen, openMobile, closeMobile } = useSidebar();
-  const { user } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    notificationsApi
-      .unreadCount()
-      .then((r) => setUnreadCount(r.count))
-      .catch(() => { });
-  }, [user]);
-
-  function roleLabel(role: string): string {
-    return {
-      employee: "Employee",
-      manager: "Manager",
-      hr_admin: "HR Administrator",
-    }[role] || role;
-  }
-
-  const initials = user?.name
-    ? user.name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase()
-    : "";
-
-  // Mock avatar image for visual parity with the mockup, fallback to initials
-  const avatarUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80";
 
   return (
     <div className="app-shell">
@@ -58,16 +28,6 @@ export default function Layout() {
           >
             <Menu size={20} />
           </button>
-
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Search anything..."
-              className="search-input"
-            />
-            <Search className="search-icon" />
-          </div>
-
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
             <button className="top-bar-btn" aria-label="Notifications">
               <Bell size={20} />
@@ -83,25 +43,10 @@ export default function Layout() {
             >
               {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
             </button>
-
-            {user && (
-              <div className="profile-dropdown">
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={user.name}
-                    className="profile-avatar-img"
-                  />
-                ) : (
-                  <div className="profile-avatar-placeholder">{initials}</div>
-                )}
-                <div className="profile-meta">
-                  <span className="profile-name">{user.name}</span>
-                  <span className="profile-role">{roleLabel(user.role)}</span>
-                </div>
-                <ChevronDown size={14} className="profile-chevron" />
-              </div>
-            )}
+            <button className="top-bar-btn" aria-label="Notifications">
+              <Bell size={20} />
+              <span className="notification-dot" />
+            </button>
           </div>
         </div>
         <Outlet />

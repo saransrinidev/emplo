@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
@@ -15,22 +17,34 @@ from app.api import (
     documents,
     edit_requests,
     employees,
+    export,
     holidays,
     leave_management,
     notifications,
+    ocr,
     password_reset,
     performance,
     permissions,
     profile,
     profile_changes,
     salary,
+    tickets,
     upload,
 )
+from app.core.middleware import RequestContextMiddleware
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 
-app = FastAPI(title="Emplo API", version="0.1.0")
+app = FastAPI(title="Emplo API", version="1.0.0", description="HRMS backend for Emplo")
 
-# Allow the Vite dev server to call the API during development.
+# Rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Request context middleware (captures IP + User-Agent for audit)
+app.add_middleware(RequestContextMiddleware)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -77,4 +91,7 @@ app.include_router(notifications.router)
 app.include_router(permissions.router)
 app.include_router(edit_requests.router)
 app.include_router(audit.router)
+app.include_router(tickets.router)
+app.include_router(export.router)
+app.include_router(ocr.router)
 app.include_router(upload.router)
