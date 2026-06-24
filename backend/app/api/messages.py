@@ -201,18 +201,28 @@ def get_conversation(
         .order_by(Message.created_at.asc())
     ).all())
 
-    # Mark received messages as read
-    for msg in msgs:
-        if msg.receiver_id == emp_id and not msg.is_read:
-            msg.is_read = True
-            msg.read_at = datetime.now(timezone.utc)
-    db.commit()
+    # Mark received messages as read (batch update instead of loop)
+    unread_ids = [msg.id for msg in msgs if msg.receiver_id == emp_id and not msg.is_read]
+    if unread_ids:
+        from sqlalchemy import update
+        db.execute(
+            update(Message)
+            .where(Message.id.in_(unread_ids))
+            .values(is_read=True, read_at=datetime.now(timezone.utc))
+        )
+        db.commit()
+
+    # Cache names (only 2 people in a conversation)
+    name_cache: dict[uuid.UUID, str | None] = {}
+    for uid in (emp_id, employee_id):
+        e = db.get(Employee, uid)
+        name_cache[uid] = e.full_name if e else None
 
     return [
         MessageOut(
-            id=m.id, sender_id=m.sender_id, sender_name=_get_name(db, m.sender_id),
-            receiver_id=m.receiver_id, receiver_name=_get_name(db, m.receiver_id),
-            content=m.content, is_read=m.is_read, created_at=m.created_at,
+            id=m.id, sender_id=m.sender_id, sender_name=name_cache.get(m.sender_id),
+            receiver_id=m.receiver_id, receiver_name=name_cache.get(m.receiver_id),
+            content=m.content, is_read=m.is_read or m.id in unread_ids, created_at=m.created_at,
         )
         for m in msgs
     ]

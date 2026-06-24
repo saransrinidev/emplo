@@ -30,9 +30,10 @@ export default function Messages() {
     pollRef.current = setInterval(async () => {
       try {
         const msgs = await messagesApi.getConversation(selectedId);
-        setMessages(msgs);
+        // Only update state if message count changed (avoids unnecessary re-renders)
+        setMessages((prev) => msgs.length !== prev.length ? msgs : prev);
       } catch { /* ignore */ }
-    }, 3000);
+    }, 2000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [selectedId]);
 
@@ -50,14 +51,32 @@ export default function Messages() {
 
   const handleSend = async () => {
     if (!newMsg.trim() || !selectedId) return;
-    setSending(true);
+    const content = newMsg.trim();
+    setNewMsg(""); // Clear immediately for snappy UX
+
+    // Optimistic update — show message instantly
+    const optimisticMsg: MessageType = {
+      id: `temp-${Date.now()}`,
+      sender_id: user?.id || "",
+      sender_name: user?.name || null,
+      receiver_id: selectedId,
+      receiver_name: null,
+      content,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
     try {
-      const msg = await messagesApi.send(selectedId, newMsg.trim());
-      setMessages((prev) => [...prev, msg]);
-      setNewMsg("");
-      // Refresh conversations
+      const msg = await messagesApi.send(selectedId, content);
+      // Replace optimistic with real
+      setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? msg : m));
       messagesApi.conversations().then(setConversations);
-    } finally { setSending(false); }
+    } catch {
+      // Remove optimistic on failure
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
+      setNewMsg(content); // Restore the message
+    }
   };
 
   const selectedName = conversations.find(c => c.employee_id === selectedId)?.employee_name
