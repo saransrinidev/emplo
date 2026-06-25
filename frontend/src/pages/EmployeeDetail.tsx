@@ -19,6 +19,7 @@ import Breadcrumbs from "../components/Breadcrumbs";
 import ImageModal from "../components/ImageModal";
 import Skeleton from "../components/Skeleton";
 import SalaryStructureModal from "../components/SalaryStructureModal";
+import EditSalaryStructureModal from "../components/EditSalaryStructureModal";
 import StatusBadge from "../components/StatusBadge";
 import { useApi } from "../hooks/useApi";
 
@@ -757,6 +758,7 @@ function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
   const money = (v: string | null) => v ? `${Number(v).toLocaleString()}` : "—";
   const [showForm, setShowForm] = useState(false);
   const [showStructure, setShowStructure] = useState(false);
+  const [showEditStructure, setShowEditStructure] = useState(false);
 
   return (
     <AsyncState loading={current.loading || history.loading} error={current.error || history.error}>
@@ -766,6 +768,7 @@ function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
         <button className="btn btn-outline btn-sm" onClick={() => setShowStructure(true)}>View Salary Structure</button>
+        {isHr && <button className="btn btn-outline btn-sm" onClick={() => setShowEditStructure(true)}>Edit Structure</button>}
         {isHr && (
           <button className="btn btn-sm" onClick={() => setShowForm((v) => !v)}>
             {showForm ? "Cancel" : "+ Add Salary Revision"}
@@ -773,6 +776,7 @@ function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
         )}
       </div>
       {showStructure && <SalaryStructureModal employeeId={empId} onClose={() => setShowStructure(false)} />}
+      {showEditStructure && <EditSalaryStructureModal employeeId={empId} onClose={() => setShowEditStructure(false)} />}
       {showForm && isHr && (
         <SalaryRevisionForm employeeId={empId} onSuccess={() => { setShowForm(false); setRefreshKey((k) => k + 1); }} />
       )}
