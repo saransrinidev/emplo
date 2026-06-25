@@ -138,6 +138,22 @@ def _to_out(s: SalaryStructure) -> SalaryStructureOut:
 
 # ─── Get salary structure for an employee ─────────────────────────────────────
 
+@router.get("/my", response_model=SalaryStructureOut | None)
+def get_my_salary_structure(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Get the current user's salary structure."""
+    if not user.employee_id:
+        return None
+    structure = db.scalar(
+        select(SalaryStructure).where(SalaryStructure.employee_id == user.employee_id)
+    )
+    if not structure:
+        return None
+    return _to_out(structure)
+
+
 @router.get("/{employee_id}", response_model=SalaryStructureOut | None)
 def get_salary_structure(
     employee_id: uuid.UUID,

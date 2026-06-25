@@ -18,6 +18,7 @@ import AsyncState from "../components/AsyncState";
 import Breadcrumbs from "../components/Breadcrumbs";
 import ImageModal from "../components/ImageModal";
 import Skeleton from "../components/Skeleton";
+import SalaryStructureModal from "../components/SalaryStructureModal";
 import StatusBadge from "../components/StatusBadge";
 import { useApi } from "../hooks/useApi";
 
@@ -755,6 +756,7 @@ function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
   const history = useApi(() => salaryApi.history(empId), [empId, refreshKey]);
   const money = (v: string | null) => v ? `${Number(v).toLocaleString()}` : "—";
   const [showForm, setShowForm] = useState(false);
+  const [showStructure, setShowStructure] = useState(false);
 
   return (
     <AsyncState loading={current.loading || history.loading} error={current.error || history.error}>
@@ -762,13 +764,15 @@ function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
         <div className="card"><div className="card-title">Current Salary</div><div className="card-value">{money(current.data?.current_salary ?? null)}</div></div>
         <div className="card"><div className="card-title">Latest Revision</div><div className="card-value">{current.data?.latest_revision_date ?? "—"}</div></div>
       </div>
-      {isHr && (
-        <div style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <button className="btn btn-outline btn-sm" onClick={() => setShowStructure(true)}>View Salary Structure</button>
+        {isHr && (
           <button className="btn btn-sm" onClick={() => setShowForm((v) => !v)}>
             {showForm ? "Cancel" : "+ Add Salary Revision"}
           </button>
-        </div>
-      )}
+        )}
+      </div>
+      {showStructure && <SalaryStructureModal employeeId={empId} onClose={() => setShowStructure(false)} />}
       {showForm && isHr && (
         <SalaryRevisionForm employeeId={empId} onSuccess={() => { setShowForm(false); setRefreshKey((k) => k + 1); }} />
       )}

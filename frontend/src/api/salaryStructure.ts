@@ -28,6 +28,9 @@ export const salaryStructureApi = {
   get: (employeeId: string) =>
     api.get<SalaryStructure | null>(`/salary-structure/${employeeId}`),
 
+  getMy: () =>
+    api.get<SalaryStructure | null>("/salary-structure/my"),
+
   getTemplate: () =>
     api.get<{ earnings: Record<string, number>; deductions: Record<string, number>; employer_contributions: Record<string, number> }>("/salary-structure/template/default"),
 
