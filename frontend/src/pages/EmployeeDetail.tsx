@@ -294,7 +294,7 @@ export default function EmployeeDetail() {
             {tab === "profile" && <ProfileTab emp={emp} />}
             {tab === "documents" && <DocumentsTab empId={id} isHr={isHr} />}
             {tab === "certifications" && <CertsTab empId={id} isHr={isHr} />}
-            {tab === "salary" && <SalaryTab empId={id} isHr={isHr} />}
+            {tab === "salary" && <SalaryTab empId={id} isHr={isHr} empName={emp.full_name} empRole={emp.designation || undefined} />}
             {tab === "performance" && <PerfTab empId={id} isHr={isHr} />}
             {tab === "permissions" && isHr && <PermissionsTab empId={id} />}
           </>
@@ -751,7 +751,7 @@ function AddCertForm({ employeeId, onSuccess }: { employeeId: string; onSuccess:
   );
 }
 
-function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
+function SalaryTab({ empId, isHr, empName, empRole }: { empId: string; isHr: boolean; empName?: string; empRole?: string }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const current = useApi(() => salaryApi.current(empId), [empId, refreshKey]);
   const history = useApi(() => salaryApi.history(empId), [empId, refreshKey]);
@@ -775,7 +775,7 @@ function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
           </button>
         )}
       </div>
-      {showStructure && <SalaryStructureModal employeeId={empId} onClose={() => setShowStructure(false)} />}
+      {showStructure && <SalaryStructureModal employeeId={empId} employeeName={empName} employeeRole={empRole} onClose={() => setShowStructure(false)} />}
       {showEditStructure && <EditSalaryStructureModal employeeId={empId} onClose={() => setShowEditStructure(false)} />}
       {showForm && isHr && (
         <SalaryRevisionForm employeeId={empId} onSuccess={() => { setShowForm(false); setRefreshKey((k) => k + 1); }} />
