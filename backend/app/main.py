@@ -30,6 +30,7 @@ from app.api import (
     profile,
     profile_changes,
     salary,
+    salary_structure,
     tasks,
     tickets,
     upload,
@@ -88,6 +89,7 @@ app.include_router(profile_changes.router)
 app.include_router(documents.router)
 app.include_router(certifications.router)
 app.include_router(salary.router)
+app.include_router(salary_structure.router)
 app.include_router(performance.router)
 app.include_router(dashboard.router)
 app.include_router(notifications.router)
