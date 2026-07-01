@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { 
+import {
   BellRing, User, Briefcase, Calendar, MapPin, ChevronLeft,
   Mail, Phone, Cake, Users, Hash, Award, Activity, FileText
 } from "lucide-react";
@@ -65,7 +65,7 @@ function Section({
       <div className="row" style={{ marginBottom: 20, display: "flex", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {icon && (
-            <div 
+            <div
               className={`section-title-icon section-title-${iconVariant}`}
               style={{
                 display: "inline-flex",
@@ -89,7 +89,7 @@ function Section({
           const isStatusActive = value === "Active";
           const isStatusLeave = value === "On Leave";
           const isStatusTerminated = value === "Terminated";
-          
+
           let valueStyle: React.CSSProperties = {};
           if (isStatusActive) {
             valueStyle = { color: "#10b981", fontWeight: 700 };
@@ -209,7 +209,7 @@ export default function EmployeeDetail() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "var(--text)" }}>{emp.full_name}</h1>
-                  
+
                   {emp.employment_status === "Active" && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
                       <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
@@ -229,11 +229,11 @@ export default function EmployeeDetail() {
                     </span>
                   )}
                 </div>
-                
+
                 <div style={{ color: "var(--text-secondary)", fontSize: 15, fontWeight: 500, marginTop: 4 }}>
                   {emp.designation ?? "—"} <span style={{ color: "hsl(var(--border) / 0.5)", margin: "0 8px" }}>|</span> {emp.department ?? "—"}
                 </div>
-                
+
                 <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap", color: "var(--text-muted)", fontSize: 13 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <User size={14} />
@@ -330,8 +330,8 @@ function SendAlertModal({
   const recipientDesc = notifyEmployee && notifyManager
     ? `${employeeName} and their manager`
     : notifyEmployee
-    ? employeeName
-    : `${employeeName}'s manager`;
+      ? employeeName
+      : `${employeeName}'s manager`;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

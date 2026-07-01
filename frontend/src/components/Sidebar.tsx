@@ -151,7 +151,7 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (!user) return;
-    notificationsApi.unreadCount().then((r) => setUnreadCount(r.count)).catch(() => {});
+    notificationsApi.unreadCount().then((r) => setUnreadCount(r.count)).catch(() => { });
   }, [user]);
 
   // Close mobile sidebar on route change
@@ -188,7 +188,7 @@ export default function Sidebar() {
 
   return (
     <aside className={sidebarClasses}>
-      <div 
+      <div
         className="sidebar-brand"
         onClick={() => collapsed && toggleSidebar()}
         style={{ cursor: collapsed ? "pointer" : "default" }}
@@ -207,7 +207,7 @@ export default function Sidebar() {
           </svg>
           <span className="sidebar-brand-text">Emplo</span>
         </div>
-        
+
         {!collapsed && (
           <button
             className="sidebar-toggle sidebar-toggle-desktop"
@@ -232,7 +232,7 @@ export default function Sidebar() {
           <X size={20} />
         </button>
       </div>
-      
+
       <nav className="sidebar-nav">
         {groupedItems.map((group) => (
           <div key={group.id} className="sidebar-nav-group">
@@ -240,8 +240,8 @@ export default function Sidebar() {
               <div className="sidebar-nav-group-title">{group.label}</div>
             )}
             {group.items.map((item) => {
-              const isActive = item.to === "/" 
-                ? location.pathname === "/" 
+              const isActive = item.to === "/"
+                ? location.pathname === "/"
                 : location.pathname.startsWith(item.to);
               return (
                 <NavLink
@@ -269,7 +269,7 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
-      
+
       <div className="sidebar-footer">
         {!collapsed ? (
           <div className="theme-switcher">
@@ -316,7 +316,7 @@ export default function Sidebar() {
             <div className="sidebar-user-role">{roleLabel(user.role)}</div>
           </div>
         </NavLink>
-        
+
         <button
           className="sidebar-action-btn sidebar-logout"
           onClick={logout}

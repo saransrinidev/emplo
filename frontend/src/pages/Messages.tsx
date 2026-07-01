@@ -90,7 +90,7 @@ export default function Messages() {
               >
                 {c.employee_photo
                   ? <img src={c.employee_photo} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
-                  : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "hsl(var(--primary) / 0.1)", color: "var(--primary-color)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{c.employee_name.slice(0,2).toUpperCase()}</div>
+                  : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "hsl(var(--primary) / 0.1)", color: "var(--primary-color)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{c.employee_name.slice(0, 2).toUpperCase()}</div>
                 }
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{c.employee_name}</div>
@@ -122,7 +122,7 @@ export default function Messages() {
                 <div key={c.id} onClick={() => openConversation(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", borderRadius: 8, marginBottom: 4 }} className="notification-card">
                   {c.photo
                     ? <img src={c.photo} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
-                    : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "hsl(var(--primary) / 0.1)", color: "var(--primary-color)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{c.name.slice(0,2).toUpperCase()}</div>
+                    : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "hsl(var(--primary) / 0.1)", color: "var(--primary-color)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{c.name.slice(0, 2).toUpperCase()}</div>
                   }
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>

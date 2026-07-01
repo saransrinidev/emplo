@@ -118,7 +118,7 @@ export default function Employees() {
   const [terminateTarget, setTerminateTarget] = useState<EmployeeWithRole | null>(null);
   const [assignManagerTarget, setAssignManagerTarget] = useState<EmployeeWithRole | null>(null);
   const [changeRoleTarget, setChangeRoleTarget] = useState<EmployeeWithRole | null>(null);
-  
+
   // Custom View Mode: Grid (default) or Table
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
@@ -437,7 +437,7 @@ export default function Employees() {
                   {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
-              
+
               {/* Grid/Table View Mode Selector Toggle */}
               <div className="view-mode-switcher">
                 <button
@@ -473,10 +473,10 @@ export default function Employees() {
                     {isHr && (
                       <th style={{ width: 40, paddingLeft: 20 }}>
                         <input
-                           type="checkbox"
-                           checked={filtered.length > 0 && selected.size === filtered.length}
-                           onChange={toggleSelectAll}
-                           style={{ cursor: "pointer" }}
+                          type="checkbox"
+                          checked={filtered.length > 0 && selected.size === filtered.length}
+                          onChange={toggleSelectAll}
+                          style={{ cursor: "pointer" }}
                         />
                       </th>
                     )}

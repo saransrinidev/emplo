@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  CheckCircle2, 
-  ExternalLink, 
-  Bell, 
-  FileText, 
-  ShieldAlert, 
-  Award, 
+import {
+  CheckCircle2,
+  ExternalLink,
+  Bell,
+  FileText,
+  ShieldAlert,
+  Award,
   CreditCard,
   X
 } from "lucide-react";

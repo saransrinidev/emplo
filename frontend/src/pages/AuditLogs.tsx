@@ -1,20 +1,20 @@
 import { useState } from "react";
-import { 
-  User, 
-  Search, 
-  Activity, 
-  FileText, 
-  Award, 
-  Shield, 
-  DollarSign, 
-  TrendingUp, 
-  Clock, 
-  ChevronRight, 
-  Copy, 
-  Check, 
-  Eye, 
-  X, 
-  Inbox, 
+import {
+  User,
+  Search,
+  Activity,
+  FileText,
+  Award,
+  Shield,
+  DollarSign,
+  TrendingUp,
+  Clock,
+  ChevronRight,
+  Copy,
+  Check,
+  Eye,
+  X,
+  Inbox,
   Filter,
   ExternalLink,
   ClipboardList
@@ -69,7 +69,7 @@ export default function AuditLogs() {
       const matchEntity = log.entity_id?.toLowerCase().includes(query);
       const matchAction = log.action.toLowerCase().includes(query);
       const matchType = log.entity_type.toLowerCase().includes(query);
-      
+
       let matchChanges = false;
       if (log.changes) {
         matchChanges = JSON.stringify(log.changes).toLowerCase().includes(query);
@@ -83,7 +83,7 @@ export default function AuditLogs() {
 
   // Calculate dynamic insights based on CURRENT logs
   const totalEvents = filteredLogs.length;
-  
+
   const creationCount = filteredLogs.filter(log => {
     const act = log.action.toLowerCase();
     return act.includes("create") || act.includes("add") || act.includes("register");
@@ -152,13 +152,13 @@ export default function AuditLogs() {
     if (!changes) return <span className="muted">—</span>;
     const keys = Object.keys(changes);
     if (keys.length === 0) return <span className="muted">Empty payload</span>;
-    
+
     return (
       <div className="changes-preview-container">
         {keys.slice(0, 3).map((key) => {
           const val = changes[key];
           let displayVal = "";
-          
+
           if (val && typeof val === "object" && !Array.isArray(val)) {
             if ("new" in val) {
               displayVal = String(val.new);
@@ -190,7 +190,7 @@ export default function AuditLogs() {
 
   const getActorAvatar = (actorId: string | null) => {
     if (!actorId) return { initials: "SY", gradient: "linear-gradient(135deg, #64748b 0%, #475569 100%)" };
-    
+
     const initials = actorId.slice(0, 2).toUpperCase();
     let hash = 0;
     for (let i = 0; i < actorId.length; i++) {
@@ -212,9 +212,9 @@ export default function AuditLogs() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
         <div style={{ flex: 1, minWidth: 200, marginBottom: 0 }}>
-          <PageHeader 
-            title="Audit Logs" 
-            subtitle="System auditing records and data change tracking." 
+          <PageHeader
+            title="Audit Logs"
+            subtitle="System auditing records and data change tracking."
           />
         </div>
       </div>
@@ -374,10 +374,10 @@ export default function AuditLogs() {
                 filteredLogs.map((log) => {
                   const isActorCurrent = currentUser && log.actor_id === currentUser.id;
                   const { initials, gradient } = getActorAvatar(log.actor_id);
-                  
+
                   return (
-                    <tr 
-                      key={log.id} 
+                    <tr
+                      key={log.id}
                       className="log-row-interactive"
                       onClick={() => {
                         setSelectedLog(log);
@@ -386,8 +386,8 @@ export default function AuditLogs() {
                     >
                       <td className="muted" style={{ whiteSpace: "nowrap" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                           <Clock size={13} className="tree-sep" />
-                           <span>{formatTimestamp(log.created_at)}</span>
+                          <Clock size={13} className="tree-sep" />
+                          <span>{formatTimestamp(log.created_at)}</span>
                         </div>
                       </td>
                       <td>
@@ -436,8 +436,8 @@ export default function AuditLogs() {
                         {renderChangesSummary(log.changes)}
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        <button 
-                          className="btn btn-outline btn-ghost" 
+                        <button
+                          className="btn btn-outline btn-ghost"
                           style={{ padding: 6, borderRadius: 6, display: "inline-flex" }}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -489,7 +489,7 @@ export default function AuditLogs() {
                 const log = selectedLog;
                 const isActorCurrent = currentUser && log.actor_id === currentUser.id;
                 const { initials, gradient } = getActorAvatar(log.actor_id);
-                
+
                 return (
                   <div className="drawer-info-grid">
                     {/* Header Info Block */}
@@ -526,7 +526,7 @@ export default function AuditLogs() {
                           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {log.id}
                           </span>
-                          <button 
+                          <button
                             onClick={() => handleCopyId(log.id, "log")}
                             style={{ background: "none", border: "none", color: "var(--primary-color)", cursor: "pointer", display: "inline-flex", padding: 4 }}
                             title="Copy ID"
@@ -548,7 +548,7 @@ export default function AuditLogs() {
                             {log.actor_id ?? "System Process"}
                           </span>
                           {log.actor_id && (
-                            <button 
+                            <button
                               onClick={() => handleCopyId(log.actor_id!, "actor")}
                               style={{ background: "none", border: "none", color: "var(--primary-color)", cursor: "pointer", display: "inline-flex", padding: 4 }}
                               title="Copy ID"
@@ -572,7 +572,7 @@ export default function AuditLogs() {
                           </span>
                           <div style={{ display: "flex", gap: 4 }}>
                             {log.entity_id && (
-                              <button 
+                              <button
                                 onClick={() => handleCopyId(log.entity_id!, "entity")}
                                 style={{ background: "none", border: "none", color: "var(--primary-color)", cursor: "pointer", display: "inline-flex", padding: 4 }}
                                 title="Copy ID"
@@ -581,8 +581,8 @@ export default function AuditLogs() {
                               </button>
                             )}
                             {log.entity_type.toLowerCase() === "employee" && log.entity_id && (
-                              <a 
-                                href={`/employees/${log.entity_id}`} 
+                              <a
+                                href={`/employees/${log.entity_id}`}
                                 style={{ color: "var(--primary-color)", display: "inline-flex", padding: 4 }}
                                 title="View Employee details"
                               >
@@ -601,7 +601,7 @@ export default function AuditLogs() {
                         (() => {
                           const entries = Object.entries(log.changes);
                           if (entries.length === 0) return <p className="muted" style={{ fontSize: 13, margin: "8px 0" }}>No keys altered.</p>;
-                          
+
                           return (
                             <div className="diff-comparison-box">
                               <table className="diff-table">
@@ -660,24 +660,24 @@ export default function AuditLogs() {
 
                     {/* Raw JSON Accordion */}
                     <div style={{ marginTop: 8 }}>
-                      <div 
-                        className="drawer-relation-card" 
+                      <div
+                        className="drawer-relation-card"
                         onClick={() => setRawJsonExpanded(!rawJsonExpanded)}
                         style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", borderRadius: 10 }}
                       >
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)" }}>
                           Raw Telemetry Data (JSON)
                         </span>
-                        <ChevronRight 
-                          size={16} 
-                          style={{ 
+                        <ChevronRight
+                          size={16}
+                          style={{
                             transform: rawJsonExpanded ? "rotate(90deg)" : "none",
                             transition: "transform 0.2s ease",
                             color: "var(--text-muted)"
-                          }} 
+                          }}
                         />
                       </div>
-                      
+
                       {rawJsonExpanded && (
                         <pre className="json-raw-tree">
                           {JSON.stringify(log, null, 2)}

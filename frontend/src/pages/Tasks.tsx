@@ -148,7 +148,7 @@ function CreateTaskModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    employeesApi.list().then(setEmployees).catch(() => {});
+    employeesApi.list().then(setEmployees).catch(() => { });
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {

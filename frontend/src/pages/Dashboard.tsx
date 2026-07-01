@@ -75,7 +75,7 @@ const WelcomeIllustration = () => (
   <svg width="180" height="120" viewBox="0 0 180 120" fill="none" style={{ display: "block" }}>
     {/* Floor/desk base */}
     <path d="M30 100H150" stroke="var(--primary-color)" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
-    
+
     {/* Potted Plant */}
     <g className="welcome-svg-plant">
       <rect x="42" y="82" width="12" height="18" rx="2" fill="#f97316" />
@@ -92,7 +92,7 @@ const WelcomeIllustration = () => (
     <circle cx="126" cy="91" r="3" fill="#031273" opacity="0.8" />
     <line x1="117" y1="88" x2="127" y2="88" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
     <line x1="117" y1="94" x2="123" y2="94" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" />
-    
+
     {/* Person */}
     <g className="welcome-svg-person">
       <path d="M78 100C78 90 85 82 94 82H102C111 82 118 90 118 100V100H78V100Z" fill="var(--primary-color)" />
@@ -116,7 +116,7 @@ function WelcomeBanner({ taskCount }: { taskCount?: number }) {
     notificationsApi
       .list()
       .then((data) => setNotifications(data.slice(0, 2)))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [user]);
 
@@ -227,7 +227,7 @@ function UpcomingReminders() {
           .slice(0, 4);
         setCerts(withExpiry);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -296,7 +296,7 @@ function RecentNotifications() {
     notificationsApi
       .list()
       .then((data) => setNotifications(data.slice(0, 5)))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 

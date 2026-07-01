@@ -18,7 +18,7 @@ export default function Layout() {
     notificationsApi
       .unreadCount()
       .then((r) => setUnreadCount(r.count))
-      .catch(() => {});
+      .catch(() => { });
   }, [user]);
 
 
@@ -40,7 +40,7 @@ export default function Layout() {
           >
             <Menu size={20} />
           </button>
-          
+
           {/* Command palette trigger in navbar */}
           <CommandPalette />
 
