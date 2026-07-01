@@ -13,6 +13,8 @@ export const notificationsApi = {
   unreadCount: () => api.get<{ count: number }>("/notifications/unread-count"),
   markAllRead: () => api.post<void>("/notifications/read-all"),
   markOneRead: (id: string) => api.put<void>(`/notifications/${id}/read`),
+  deleteOne: (id: string) => api.delete<void>(`/notifications/${id}`),
+  clearAll: () => api.delete<void>("/notifications"),
   sendAlert: (data: {
     employee_id: string;
     title: string;

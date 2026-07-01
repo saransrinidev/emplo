@@ -11,6 +11,8 @@ export interface CurrentUser {
   id: string;
   email: string;
   role: Role;
+  name: string | null;
+  profile_photo: string | null;
 }
 
 export const authApi = {

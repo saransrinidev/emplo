@@ -264,7 +264,7 @@ export default function AuditLogs() {
         </div>
 
         {/* Filter bar */}
-        <div className="filter-bar-card" style={{ marginBottom: 24, padding: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <div className="filter-bar-card" style={{ marginBottom: 24, padding: 0, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
           <div className="search-input-wrapper" style={{ flex: 1, minWidth: 220 }}>
             <Search size={15} className="search-icon-inside" />
             <input

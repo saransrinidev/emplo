@@ -1,15 +1,27 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Bell, Menu, Moon, Sun, Search, ChevronDown } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
-import { useTheme } from "../context/ThemeContext";
+import CommandPalette from "./CommandPalette";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../context/AuthContext";
 import { notificationsApi } from "../api/notifications";
 
 export default function Layout() {
-  const { theme, toggleTheme } = useTheme();
+
   const { mobileOpen, openMobile, closeMobile } = useSidebar();
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    notificationsApi
+      .unreadCount()
+      .then((r) => setUnreadCount(r.count))
+      .catch(() => {});
+  }, [user]);
+
+
 
   return (
     <div className="app-shell">
@@ -28,6 +40,10 @@ export default function Layout() {
           >
             <Menu size={20} />
           </button>
+          
+          {/* Command palette trigger in navbar */}
+          <CommandPalette />
+
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
             <button className="top-bar-btn" aria-label="Notifications">
               <Bell size={20} />
@@ -35,18 +51,8 @@ export default function Layout() {
                 <span className="notification-badge-count">{unreadCount}</span>
               )}
             </button>
-            <button
-              className="theme-toggle"
-              onClick={toggleTheme}
-              aria-label="Toggle dark mode"
-              title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-            >
-              {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-            <button className="top-bar-btn" aria-label="Notifications">
-              <Bell size={20} />
-              <span className="notification-dot" />
-            </button>
+
+
           </div>
         </div>
         <Outlet />

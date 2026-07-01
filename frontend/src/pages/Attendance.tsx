@@ -11,11 +11,6 @@ import {
   ChevronRight,
   X,
   CalendarRange,
-  Home,
-  Briefcase,
-  Timer,
-  LogIn,
-  LogOut,
 } from "lucide-react";
 import {
   attendanceApi,
@@ -55,67 +50,6 @@ export default function Attendance() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-
-  // Front-end state for check-in/out & shift tracking
-  const [checkedIn, setCheckedIn] = useState(false);
-  const [workMode, setWorkMode] = useState<"Office" | "WFH">("Office");
-  const [timeLogs, setTimeLogs] = useState<{ type: string; time: string }[]>([]);
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-
-  const checkInKey = user ? `emplo_check_in_time_${user.id}` : "";
-  const modeKey = user ? `emplo_work_mode_${user.id}` : "";
-  const logsKey = user ? `emplo_time_logs_${user.id}` : "";
-
-  // Load check-in state, mode, and logs from localStorage
-  useEffect(() => {
-    if (!user) return;
-    const storedCheck = localStorage.getItem(checkInKey);
-    if (storedCheck) {
-      setCheckedIn(true);
-    } else {
-      setCheckedIn(false);
-    }
-    const storedMode = localStorage.getItem(modeKey);
-    if (storedMode === "Office" || storedMode === "WFH") {
-      setWorkMode(storedMode);
-    }
-    const storedLogs = localStorage.getItem(logsKey);
-    if (storedLogs) {
-      setTimeLogs(JSON.parse(storedLogs));
-    } else {
-      setTimeLogs([]);
-    }
-  }, [user, checkInKey, modeKey, logsKey]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handlePunch = () => {
-    if (!user) return;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    if (!checkedIn) {
-      localStorage.setItem(checkInKey, now.toISOString());
-      localStorage.setItem(modeKey, workMode);
-      
-      const newLogs = [...timeLogs, { type: `Check In (${workMode})`, time: timeStr }];
-      setTimeLogs(newLogs);
-      localStorage.setItem(logsKey, JSON.stringify(newLogs));
-      setCheckedIn(true);
-    } else {
-      localStorage.removeItem(checkInKey);
-      
-      const newLogs = [...timeLogs, { type: `Check Out`, time: timeStr }];
-      setTimeLogs(newLogs);
-      localStorage.setItem(logsKey, JSON.stringify(newLogs));
-      setCheckedIn(false);
-    }
-  };
 
   const isManager = user?.role === "manager";
   const isHR = user?.role === "hr_admin";
@@ -185,94 +119,6 @@ export default function Attendance() {
       )}
 
       <AsyncState loading={loadingMy || loadingTeam} error={errorMy || errorTeam}>
-        {/* Daily Punch & Shift tracking widgets */}
-        {(
-          <div className="attendance-grid">
-            <div className="attendance-premium-card">
-              <div className="shift-header">
-                <span className="shift-title">
-                  <Clock size={16} /> Daily Check-In/Out
-                </span>
-                <span className="shift-status-badge">
-                  {checkedIn ? "Working" : "Offline"}
-                </span>
-              </div>
-              
-              <div className="att-clock-container">
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div className="att-live-time">{currentTime}</div>
-                  <div className="att-live-dot" />
-                </div>
-                <div className="att-live-date">{new Date().toLocaleDateString("en-US", { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</div>
-              </div>
-
-              <div className="att-mode-toggle">
-                <button 
-                  type="button"
-                  className={`att-mode-btn ${workMode === "Office" ? "active" : ""}`}
-                  onClick={() => setWorkMode("Office")}
-                >
-                  <Briefcase size={14} /> Office
-                </button>
-                <button 
-                  type="button"
-                  className={`att-mode-btn ${workMode === "WFH" ? "active" : ""}`}
-                  onClick={() => setWorkMode("WFH")}
-                >
-                  <Home size={14} /> WFH (Work from Home)
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className={`att-punch-btn ${checkedIn ? "checked-in" : "checked-out"}`}
-                onClick={handlePunch}
-              >
-                {checkedIn ? <LogOut size={16} /> : <LogIn size={16} />}
-                {checkedIn ? "Punch Out" : "Punch In"}
-              </button>
-            </div>
-
-            <div className="attendance-premium-card">
-              <div className="shift-header">
-                <span className="shift-title">
-                  <Timer size={16} /> Shift Progress & Timeline
-                </span>
-                <span className="shift-status-badge" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.2)" }}>
-                  General Shift
-                </span>
-              </div>
-
-              <div className="shift-progress-container">
-                <div className="shift-progress-labels">
-                  <span>Shift Progress</span>
-                  <span>{checkedIn ? "8 hrs remaining" : "0 hrs completed"}</span>
-                </div>
-                <div className="shift-progress-bar">
-                  <div className="shift-progress-fill" style={{ width: checkedIn ? "35%" : "0%" }} />
-                </div>
-              </div>
-
-              <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-secondary)", marginBottom: 10 }}>Today's Activity Logs</div>
-              {timeLogs.length === 0 ? (
-                <div style={{ color: "var(--text-muted)", fontSize: 12, padding: "10px 0" }}>No punch activity recorded today.</div>
-              ) : (
-                <div className="att-timeline">
-                  {timeLogs.map((log, index) => (
-                    <div key={index} className="att-timeline-item">
-                      <div className={`att-timeline-dot ${log.type.includes("Out") ? "is-out" : ""}`} />
-                      <div className="att-timeline-content">
-                        <span className="att-timeline-title">{log.type}</span>
-                        <span className="att-timeline-time">{log.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Summary stats (employee + manager personal view) */}
         {!isHR && (
           <div className="att-stats">
@@ -301,39 +147,45 @@ export default function Attendance() {
                 <p>Nothing waiting on you right now.</p>
               </div>
             ) : (
-              <div style={{ padding: 20 }}>
-                <div className="leave-cards-grid">
-                  {pendingTeam.map((lr) => {
-                    const initials = lr.employee_name
-                      ? lr.employee_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                      : "EE";
-                    return (
-                      <div key={lr.id} className="leave-request-card">
-                        <div className="leave-request-card-header">
-                          <div className="leave-request-card-user">
-                            <div className="leave-request-card-avatar">{initials}</div>
-                            <div>
-                              <div className="leave-request-card-name">{lr.employee_name ?? "—"}</div>
-                              <div className="leave-request-card-dept">{lr.department ?? "—"}</div>
-                            </div>
-                          </div>
+              <div style={{ overflowX: "auto" }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>Department</th>
+                      <th>Type</th>
+                      <th>Dates</th>
+                      <th>Days</th>
+                      <th>Reason</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "right" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingTeam.map((lr) => (
+                      <tr key={lr.id}>
+                        <td style={{ fontWeight: 500 }}>{lr.employee_name ?? "—"}</td>
+                        <td className="muted">{lr.department ?? "—"}</td>
+                        <td>
+                          <span className="leave-type-pill">{lr.leave_type}</span>
+                        </td>
+                        <td className="muted" style={{ whiteSpace: "nowrap" }}>
+                          {lr.start_date} → {lr.end_date}
+                        </td>
+                        <td className="muted">{dayCount(lr.start_date, lr.end_date)}</td>
+                        <td className="muted" style={{ maxWidth: 200 }}>
+                          {lr.reason || "—"}
+                        </td>
+                        <td>
                           <LeaveChip status={lr.status} />
-                        </div>
-                        <div>
-                          <div style={{ marginBottom: 8 }}>
-                            <span className="leave-type-pill">{lr.leave_type}</span>
-                          </div>
-                          <div className="leave-request-card-dates">{lr.start_date} → {lr.end_date}</div>
-                          <div className="leave-request-card-duration">{dayCount(lr.start_date, lr.end_date)} Days</div>
-                          {lr.reason && <div className="leave-request-card-reason">{lr.reason}</div>}
-                        </div>
-                        <div style={{ borderTop: "1px solid hsl(var(--border) / 0.5)", paddingTop: 16, marginTop: 4 }}>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
                           <ActionButtons leave={lr} role={user!.role} onDone={refresh} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </section>
@@ -355,27 +207,39 @@ export default function Attendance() {
                 <p>No leave requests yet. Click “Apply Leave” to get started.</p>
               </div>
             ) : (
-              <div style={{ padding: 20 }}>
-                <div className="leave-cards-grid">
-                  {my.map((lr) => (
-                    <div key={lr.id} className="leave-request-card">
-                      <div className="leave-request-card-header">
-                        <span className="leave-type-pill">{lr.leave_type}</span>
-                        <LeaveChip status={lr.status} />
-                      </div>
-                      <div>
-                        <div className="leave-request-card-dates">{lr.start_date} → {lr.end_date}</div>
-                        <div className="leave-request-card-duration">{dayCount(lr.start_date, lr.end_date)} Days</div>
-                        {lr.reason && <div className="leave-request-card-reason">{lr.reason}</div>}
-                      </div>
-                      {(lr.hr_remarks || lr.manager_remarks) && (
-                        <div className="leave-request-card-remarks">
-                          <strong>Remarks:</strong> {lr.hr_remarks || lr.manager_remarks}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <div style={{ overflowX: "auto" }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Dates</th>
+                      <th>Days</th>
+                      <th>Reason</th>
+                      <th>Status</th>
+                      <th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {my.map((lr) => (
+                      <tr key={lr.id}>
+                        <td>
+                          <span className="leave-type-pill">{lr.leave_type}</span>
+                        </td>
+                        <td className="muted" style={{ whiteSpace: "nowrap" }}>
+                          {lr.start_date} → {lr.end_date}
+                        </td>
+                        <td className="muted">{dayCount(lr.start_date, lr.end_date)}</td>
+                        <td className="muted">{lr.reason || "—"}</td>
+                        <td>
+                          <LeaveChip status={lr.status} />
+                        </td>
+                        <td className="muted">
+                          {lr.hr_remarks || lr.manager_remarks || "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </section>

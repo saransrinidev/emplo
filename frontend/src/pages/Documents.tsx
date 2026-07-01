@@ -35,15 +35,6 @@ export default function Documents() {
     (d) => !REQUIRED_DOCS.some((r) => r.type === d.document_type)
   );
 
-  // Calculate stats
-  const totalUploaded = documents.length;
-  const verified = documents.filter((d) => d.status === "verified").length;
-  const pending = REQUIRED_DOCS.filter((r) => {
-    const doc = getDocForType(r.type);
-    return !doc || doc.status === "uploaded";
-  }).length;
-  const rejected = documents.filter((d) => d.status === "rejected").length;
-
   return (
     <div>
       <PageHeader
@@ -51,49 +42,8 @@ export default function Documents() {
         subtitle="Upload your required educational documents."
       />
       <AsyncState loading={loading} error={error}>
-        {/* Stats Row */}
-        <div className="docs-stats-row">
-          <div className="docs-stat-card">
-            <div className="docs-stat-icon" style={{ background: "hsl(var(--primary-light) / 0.15)", color: "var(--primary-color)" }}>
-              <FileText size={20} />
-            </div>
-            <div>
-              <div className="docs-stat-val">{totalUploaded}</div>
-              <div className="docs-stat-lbl">Total Uploaded</div>
-            </div>
-          </div>
-          <div className="docs-stat-card">
-            <div className="docs-stat-icon" style={{ background: "hsl(142 60% 93%)", color: "hsl(142 71% 45%)" }}>
-              <CheckCircle2 size={20} />
-            </div>
-            <div>
-              <div className="docs-stat-val">{verified}</div>
-              <div className="docs-stat-lbl">Verified Docs</div>
-            </div>
-          </div>
-          <div className="docs-stat-card">
-            <div className="docs-stat-icon" style={{ background: "hsl(45 90% 93%)", color: "hsl(45 90% 40%)" }}>
-              <Clock size={20} />
-            </div>
-            <div>
-              <div className="docs-stat-val">{pending}</div>
-              <div className="docs-stat-lbl">Pending Review / Upload</div>
-            </div>
-          </div>
-          <div className="docs-stat-card">
-            <div className="docs-stat-icon" style={{ background: "hsl(0 84% 94%)", color: "hsl(0 84% 50%)" }}>
-              <XCircle size={20} />
-            </div>
-            <div>
-              <div className="docs-stat-val">{rejected}</div>
-              <div className="docs-stat-lbl">Rejected Docs</div>
-            </div>
-          </div>
-        </div>
-
         {/* Required documents grid */}
-        <h2 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>Required Documents</h2>
-        <div className="docs-grid">
+        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 24 }}>
           {REQUIRED_DOCS.map((req) => {
             const doc = getDocForType(req.type);
             return (
@@ -110,41 +60,33 @@ export default function Documents() {
         </div>
 
         {/* Other uploaded documents */}
-        <div style={{ marginBottom: 24, marginTop: 12 }}>
-          <div style={{ display: "flex", justifyContent: "between", alignItems: "center", marginBottom: 16 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Other Documents</h2>
-          </div>
-          <div className="card" style={{ padding: 0 }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Document</th>
-                  <th>Type</th>
-                  <th>Uploaded</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {otherDocs.length === 0 ? (
+        {otherDocs.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ marginBottom: 12, fontSize: 15 }}>Other Documents</h2>
+            <div className="card" style={{ padding: 0 }}>
+              <table className="table">
+                <thead>
                   <tr>
-                    <td colSpan={4} className="muted" style={{ textAlign: "center", padding: 24 }}>
-                      No other documents uploaded yet.
-                    </td>
+                    <th>Document</th>
+                    <th>Type</th>
+                    <th>Uploaded</th>
+                    <th>Status</th>
                   </tr>
-                ) : (
-                  otherDocs.map((doc) => (
+                </thead>
+                <tbody>
+                  {otherDocs.map((doc) => (
                     <tr key={doc.id}>
-                      <td style={{ fontWeight: 600 }}>{doc.document_name ?? "Document"}</td>
+                      <td>{doc.document_name ?? "Document"}</td>
                       <td className="muted" style={{ textTransform: "capitalize" }}>{doc.document_type}</td>
                       <td className="muted">{doc.created_at.slice(0, 10)}</td>
                       <td><StatusBadge status={doc.status} /></td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Upload additional */}
         <button className="btn btn-outline btn-sm" onClick={() => setUploadType("other")}>
@@ -191,60 +133,55 @@ function RequiredDocCard({
   const hasDoc = !!document;
   const status = document?.status;
 
-  let cardClass = "docs-card";
-  if (!hasDoc) cardClass += " docs-card-pending";
-  else if (status === "verified") cardClass += " docs-card-verified";
-  else if (status === "rejected") cardClass += " docs-card-rejected";
-
   return (
-    <div className={cardClass}>
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" }}>
-        <div>
-          <div className="docs-icon-wrapper" style={{
-            background: hasDoc ? (status === "verified" ? "hsl(142 60% 93%)" : status === "rejected" ? "hsl(0 84% 94%)" : "hsl(45 90% 93%)") : "var(--surface-hover)",
-          }}>
-            {!hasDoc && <FileText size={20} style={{ color: "var(--text-muted)" }} />}
-            {hasDoc && status === "verified" && <CheckCircle2 size={20} style={{ color: "hsl(142 71% 45%)" }} />}
-            {hasDoc && status === "uploaded" && <Clock size={20} style={{ color: "hsl(45 90% 40%)" }} />}
-            {hasDoc && status === "rejected" && <XCircle size={20} style={{ color: "hsl(0 84% 50%)" }} />}
-          </div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 4 }}>
+    <div className="card" style={{ padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <div style={{
+          width: 40,
+          height: 40,
+          borderRadius: "var(--radius)",
+          background: hasDoc ? (status === "verified" ? "hsl(142 60% 93%)" : "hsl(45 90% 93%)") : "var(--surface-hover)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          {!hasDoc && <FileText size={18} style={{ color: "var(--text-muted)" }} />}
+          {hasDoc && status === "verified" && <CheckCircle2 size={18} style={{ color: "hsl(142 71% 45%)" }} />}
+          {hasDoc && status === "uploaded" && <Clock size={18} style={{ color: "hsl(45 90% 40%)" }} />}
+          {hasDoc && status === "rejected" && <XCircle size={18} style={{ color: "hsl(0 84% 60%)" }} />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 500, fontSize: 14, color: "var(--text)", marginBottom: 2 }}>
             {label}
           </div>
-          <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 18, lineHeight: 1.4 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
             {description}
           </div>
-        </div>
-
-        <div>
           {!hasDoc && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span className="badge" style={{ background: "hsl(0 84% 60% / 0.1)", color: "hsl(0 84% 50%)", borderColor: "transparent", fontSize: 11 }}>
-                Required
+                Pending Upload
               </span>
-              <button className="btn btn-sm" onClick={onUpload}>
-                <Upload size={13} style={{ marginRight: 4 }} /> Upload
+              <button className="btn btn-sm" onClick={onUpload} style={{ padding: "4px 10px", fontSize: 12 }}>
+                <Upload size={12} /> Upload
               </button>
             </div>
           )}
           {hasDoc && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <StatusBadge status={status!} />
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  {document!.created_at.slice(0, 10)}
-                </span>
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button className="btn btn-outline btn-sm" onClick={() => onView(document!)}>
-                  <Eye size={13} style={{ marginRight: 4 }} /> View
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <StatusBadge status={status!} />
+              <button className="btn btn-outline btn-sm" onClick={() => onView(document!)} style={{ padding: "4px 10px", fontSize: 12 }}>
+                <Eye size={12} /> View
+              </button>
+              {status === "rejected" && (
+                <button className="btn btn-outline btn-sm" onClick={onUpload} style={{ padding: "4px 10px", fontSize: 12 }}>
+                  Re-upload
                 </button>
-                {status === "rejected" && (
-                  <button className="btn btn-sm" onClick={onUpload}>
-                    Re-upload
-                  </button>
-                )}
-              </div>
+              )}
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                {document!.created_at.slice(0, 10)}
+              </span>
             </div>
           )}
         </div>

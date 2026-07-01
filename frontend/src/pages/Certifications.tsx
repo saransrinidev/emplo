@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
+import { Upload, Wand2, Edit3, CheckCircle, Loader2 } from "lucide-react";
 import { certificationsApi } from "../api/certifications";
 import { uploadFile } from "../api/upload";
 import { api } from "../api/client";
@@ -36,34 +37,6 @@ export default function Certifications() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
 
-  // Calculate Stats
-  const totalCerts = certifications.length;
-  const verifiedCerts = certifications.filter((c) => c.verification_status === "verified").length;
-  const pendingCerts = certifications.filter((c) => c.verification_status === "uploaded").length;
-  const expiredCerts = certifications.filter((c) => {
-    if (!c.expiry_date) return false;
-    const expiry = new Date(c.expiry_date);
-    const today = new Date();
-    // Reset hours for accurate date comparison
-    expiry.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    return expiry <= today;
-  }).length;
-
-  // Helper to determine category badge styling
-  const getCategoryBadge = (category: string) => {
-    const cat = category.toLowerCase();
-    if (["aws", "azure", "microsoft"].includes(cat)) {
-      return <span className="cert-badge cert-badge-cloud">Cloud</span>;
-    } else if (["scrum", "pmp"].includes(cat)) {
-      return <span className="cert-badge cert-badge-management">Management</span>;
-    } else if (["security", "cissp"].includes(cat)) {
-      return <span className="cert-badge cert-badge-security">Security</span>;
-    } else {
-      return <span className="cert-badge cert-badge-other">{category.replace("_", " ")}</span>;
-    }
-  };
-
   return (
     <div>
       <PageHeader
@@ -75,43 +48,42 @@ export default function Certifications() {
           </button>
         }
       />
-
       {showForm && user && (
         <AddCertificationForm
           onSuccess={() => {
             setShowForm(false);
             setRefreshKey((k) => k + 1);
+            toast.success("Certification added successfully!");
           }}
         />
       )}
-
       <AsyncState loading={loading} error={error}>
-        <div className="card" style={{ padding: 0 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Certificate</th>
-                <th>Number</th>
-                <th>Category</th>
-                <th>Issued</th>
-                <th>Expiry</th>
-                <th>File</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {certifications.length === 0 ? (
+        {certifications.length === 0 ? (
+          <EmptyState
+            title="No certifications yet"
+            description="Upload your professional certifications — they'll be verified by HR."
+            action={
+              <button className="btn btn-sm" onClick={() => setShowForm(true)}>
+                + Add Certification
+              </button>
+            }
+          />
+        ) : (
+          <div className="card" style={{ padding: 0 }}>
+            <table className="table">
+              <thead>
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="muted"
-                    style={{ textAlign: "center" }}
-                  >
-                    No certifications added yet.
-                  </td>
+                  <th>Certificate</th>
+                  <th>Number</th>
+                  <th>Category</th>
+                  <th>Issued</th>
+                  <th>Expiry</th>
+                  <th>File</th>
+                  <th>Status</th>
                 </tr>
-              ) : (
-                certifications.map((cert) => (
+              </thead>
+              <tbody>
+                {certifications.map((cert) => (
                   <tr key={cert.id}>
                     <td>{cert.certificate_name}</td>
                     <td className="muted">{cert.certificate_number ?? "—"}</td>
@@ -122,28 +94,18 @@ export default function Certifications() {
                     <td className="muted">{cert.expiry_date ?? "—"}</td>
                     <td>
                       {cert.file_url ? (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => {
-                            setPreviewUrl(cert.file_url);
-                            setPreviewTitle(cert.certificate_name);
-                          }}
-                        >
+                        <button className="btn btn-outline btn-sm" onClick={() => { setPreviewUrl(cert.file_url); setPreviewTitle(cert.certificate_name); }}>
                           View
                         </button>
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
+                      ) : <span className="muted">—</span>}
                     </td>
-                    <td>
-                      <StatusBadge status={cert.verification_status} />
-                    </td>
+                    <td><StatusBadge status={cert.verification_status} /></td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </AsyncState>
       {previewUrl && (
         <ImageModal url={previewUrl} title={previewTitle} onClose={() => setPreviewUrl(null)} />

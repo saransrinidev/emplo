@@ -1,4 +1,8 @@
-import { salaryApi } from "../api/salary";
+import { useState, type FormEvent } from "react";
+import { TrendingUp, Plus, Calendar, ArrowUpRight, IndianRupee, Briefcase } from "lucide-react";
+import { salaryApi, type SalaryRevision, type CurrentSalary } from "../api/salary";
+import { ApiError } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
@@ -42,6 +46,22 @@ export default function Salary() {
   const loading = current.loading || history.loading;
   const error = current.error || history.error;
   const rows = history.data ?? [];
+  const approvedRows = rows.filter((r) => r.approval_status === "approved");
+  const pendingRows = rows.filter((r) => r.approval_status === "pending");
+
+  // Calculate annual CTC (assume monthly * 12 or just show the number as is)
+  const currentCtc = current.data?.current_salary;
+  const latestDate = current.data?.latest_revision_date;
+
+  // Last increment percentage
+  const lastIncrement = approvedRows.length > 0 ? approvedRows[0].revision_percentage : null;
+
+  const handleCreated = () => {
+    setShowModal(false);
+    toast.success("Salary revision proposed successfully!");
+    current.refetch();
+    history.refetch();
+  };
 
   return (
     <div>
@@ -67,17 +87,26 @@ export default function Salary() {
       )}
 
       <AsyncState loading={loading} error={error}>
-        <div className="grid grid-cards" style={{ marginBottom: 24 }}>
-          <div className="card">
-            <div className="card-title">Current Salary</div>
-            <div className="card-value">
-              {money(current.data?.current_salary ?? null)}
+        {/* ─── Current CTC Card ─── */}
+        <div className="compensation-header">
+          <div className="compensation-ctc-card">
+            <div className="compensation-ctc-label">
+              <IndianRupee size={16} />
+              Current CTC
+            </div>
+            <div className="compensation-ctc-amount">
+              {formatCurrencyFull(currentCtc)} <span className="compensation-ctc-period">/ year</span>
+            </div>
+            <div className="compensation-ctc-effective">
+              Effective from {formatDate(latestDate)}
             </div>
           </div>
-          <div className="card">
-            <div className="card-title">Latest Revision</div>
-            <div className="card-value">
-              {current.data?.latest_revision_date ?? "—"}
+
+          {/* Salary Growth Widget */}
+          <div className="compensation-growth-card">
+            <div className="compensation-growth-label">
+              <TrendingUp size={16} />
+              Last Revision
             </div>
             {lastIncrement ? (
               <div className="compensation-growth-badge">
@@ -105,41 +134,75 @@ export default function Salary() {
           )}
         </div>
 
-        <div className="card" style={{ padding: 0 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Effective Date</th>
-                <th>Previous</th>
-                <th>Revised</th>
-                <th>Change</th>
-                <th>Comments</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="muted" style={{ textAlign: "center" }}>
-                    No salary history yet.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.effective_date}</td>
-                    <td className="muted">{money(row.previous_salary)}</td>
-                    <td>{money(row.revised_salary)}</td>
-                    <td className="muted">
-                      {row.revision_percentage
-                        ? `+${row.revision_percentage}%`
-                        : "—"}
-                    </td>
-                    <td className="muted">{row.comments ?? "—"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* ─── Pending Revisions (HR only) ─── */}
+        {isHr && pendingRows.length > 0 && (
+          <div className="compensation-pending">
+            <h3 className="compensation-section-title">
+              <Calendar size={16} /> Pending Approval ({pendingRows.length})
+            </h3>
+            {pendingRows.map((rev) => (
+              <PendingRevisionCard key={rev.id} revision={rev} onAction={() => { history.refetch(); current.refetch(); }} />
+            ))}
+          </div>
+        )}
+
+        {/* ─── Salary Timeline ─── */}
+        <div className="compensation-timeline-section">
+          <h3 className="compensation-section-title">
+            <TrendingUp size={16} /> Salary Timeline
+          </h3>
+
+          {approvedRows.length === 0 ? (
+            <EmptyState
+              icon={<IndianRupee size={40} />}
+              title="No salary history"
+              description="Salary revisions will appear here as a growth timeline."
+              variant="compact"
+            />
+          ) : (
+            <div className="compensation-timeline">
+              {approvedRows.map((rev, idx) => {
+                const isFirst = idx === 0;
+                const yearLabel = getYear(rev.effective_date);
+                const showYear = idx === 0 || getYear(approvedRows[idx - 1].effective_date) !== yearLabel;
+
+                return (
+                  <div key={rev.id} className="compensation-timeline-item">
+                    {showYear && (
+                      <div className="compensation-timeline-year">{yearLabel}</div>
+                    )}
+                    <div className="compensation-timeline-node">
+                      <div className={`compensation-timeline-dot ${isFirst ? "compensation-timeline-dot-active" : ""}`} />
+                      <div className="compensation-timeline-line" />
+                    </div>
+                    <div className="compensation-timeline-content">
+                      <div className="compensation-timeline-header">
+                        {rev.revision_percentage && (
+                          <span className="compensation-increment-badge">
+                            <ArrowUpRight size={12} /> +{rev.revision_percentage}%
+                          </span>
+                        )}
+                        {!rev.revision_percentage && idx === approvedRows.length - 1 && (
+                          <span className="compensation-initial-badge">Initial Salary</span>
+                        )}
+                      </div>
+                      <div className="compensation-timeline-amounts">
+                        {rev.previous_salary && (
+                          <span className="compensation-prev">{formatCurrency(rev.previous_salary)}</span>
+                        )}
+                        {rev.previous_salary && <span className="compensation-arrow">→</span>}
+                        <span className="compensation-new">{formatCurrency(rev.revised_salary)}</span>
+                      </div>
+                      <div className="compensation-timeline-meta">
+                        {rev.comments && <span className="compensation-reason">{rev.comments}</span>}
+                        <span className="compensation-effective">Effective: {formatDate(rev.effective_date)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </AsyncState>
 
