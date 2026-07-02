@@ -15,6 +15,7 @@ export interface Employee {
   employment_status: string | null;
   work_location: string | null;
   manager_id: string | null;
+  profile_photo: string | null;
 }
 
 export interface EmployeeCreate {
@@ -52,6 +53,7 @@ export interface EmployeeWithRole {
   work_location: string | null;
   manager_id: string | null;
   role: string | null;
+  profile_photo: string | null;
 }
 
 export interface BulkImportResult {
@@ -79,6 +81,9 @@ export const employeesApi = {
 
   createLogin: (employeeId: string, data: { password: string; role: string }) =>
     api.post<UserAccount>(`/employees/${employeeId}/create-login`, data),
+
+  bulkCreateLogins: (data: { employee_ids: string[]; password: string; role: string }) =>
+    api.post<{ total: number; created: number; errors: string[] }>("/employees/bulk-create-login", data),
 
   changeRole: (employeeId: string, role: string) =>
     api.put<UserAccount>(`/employees/${employeeId}/change-role`, { role }),

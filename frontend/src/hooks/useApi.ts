@@ -33,7 +33,7 @@ export function useApi<T>(
     data: cached ? (cached.data as T) : null,
     loading: !cached,
     error: null,
-    refetch: () => {},
+    refetch: () => { },
   });
 
   const activeRef = useRef(true);

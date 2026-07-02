@@ -1,6 +1,6 @@
 import { api } from "./client";
 
-export type TicketType = "leave" | "document_update" | "profile_edit" | "certification" | "salary_query" | "general";
+export type TicketType = "leave" | "wfh" | "document_update" | "profile_edit" | "certification" | "salary_query" | "general";
 export type TicketPriority = "low" | "medium" | "high";
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed" | "rejected";
 
@@ -56,6 +56,14 @@ export const ticketsApi = {
 
   addComment: (ticketId: string, message: string, isInternal = false) =>
     api.post<TicketComment>(`/tickets/${ticketId}/comments`, { message, is_internal: isInternal }),
+
+  // Manager
+  team: (params?: { status?: TicketStatus }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    const query = qs.toString();
+    return api.get<Ticket[]>(`/tickets/team${query ? `?${query}` : ""}`);
+  },
 
   // HR
   listAll: (params?: { status?: TicketStatus; ticket_type?: TicketType; limit?: number; offset?: number }) => {

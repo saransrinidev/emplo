@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Plus, MessageSquare, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { ticketsApi, type Ticket, type TicketType, type TicketStatus, type TicketPriority } from "../api/tickets";
 import { ApiError } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
@@ -10,6 +11,7 @@ import { useToast } from "../components/Toast";
 
 const TYPE_LABELS: Record<TicketType, string> = {
   leave: "Leave Request",
+  wfh: "Work From Home",
   document_update: "Document Update",
   profile_edit: "Profile Edit",
   certification: "Certification",
@@ -38,18 +40,23 @@ export default function MyRequests() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [filter, setFilter] = useState<TicketStatus | "">("");
+  const [tab, setTab] = useState<"my" | "team">("my");
   const toast = useToast();
+  const { user } = useAuth();
+  const isHr = user?.role === "hr_admin";
+  const isManager = user?.role === "manager";
 
   const load = () => {
     setLoading(true);
     const params = filter ? { status: filter as TicketStatus } : undefined;
-    ticketsApi.my(params)
+    const fetcher = tab === "team" ? ticketsApi.team(params) : ticketsApi.my(params);
+    fetcher
       .then(setTickets)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load requests"))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [filter]);
+  useEffect(() => { load(); }, [filter, tab]);
 
   const openTicket = (ticket: Ticket) => {
     ticketsApi.get(ticket.id).then(setSelectedTicket).catch(() => setSelectedTicket(ticket));
@@ -57,7 +64,15 @@ export default function MyRequests() {
 
   return (
     <div>
-      <PageHeader title="My Requests" subtitle="Track all your requests and tickets in one place." />
+      <PageHeader title={isHr && tab === "all" ? "All Tickets" : "My Requests"} subtitle={isHr && tab === "all" ? "Manage employee requests and tickets." : "Track all your requests and tickets in one place."} />
+
+      {/* Tab toggle */}
+      {(isHr || isManager) && (
+        <div className="premium-tabs-container" style={{ marginBottom: 16 }}>
+          <button className={`premium-tab-btn ${tab === "my" ? "premium-tab-btn-active" : ""}`} onClick={() => setTab("my")}>My Requests</button>
+          <button className={`premium-tab-btn ${tab === "team" ? "premium-tab-btn-active" : ""}`} onClick={() => setTab("team")}>{isHr ? "All Employee Tickets" : "Team Tickets"}</button>
+        </div>
+      )}
 
       <div className="row" style={{ marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <button className="btn btn-sm" onClick={() => setShowCreate(true)}>
@@ -112,16 +127,28 @@ export default function MyRequests() {
                       {STATUS_ICONS[t.status]}
                       <strong style={{ fontSize: 14 }}>{t.ticket_number}</strong>
                       <span className="badge" style={{ fontSize: 11, background: "var(--bg-secondary)" }}>
-                        {TYPE_LABELS[t.ticket_type]}
+                        {TYPE_LABELS[t.ticket_type] || t.ticket_type}
                       </span>
-                      <span style={{ fontSize: 11, color: PRIORITY_COLORS[t.priority] }}>●</span>
+                      <span style={{ fontSize: 11, color: PRIORITY_COLORS[t.priority] || "var(--text-muted)" }}>●</span>
                     </div>
                     <div style={{ fontSize: 14 }}>{t.subject}</div>
                     <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 4 }}>
-                      {new Date(t.created_at).toLocaleDateString()} · {t.status.replace("_", " ")}
+                      {t.employee_name && <span>{String(t.employee_name)} · </span>}
+                      {new Date(t.created_at).toLocaleDateString()} · {String(t.status).replace("_", " ")}
                     </div>
                   </div>
-                  <MessageSquare size={16} color="var(--text-tertiary)" />
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                    {isHr && tab === "team" && t.status === "open" && (
+                      <button className="btn btn-sm" style={{ fontSize: 11, padding: "4px 8px" }} onClick={async () => { await ticketsApi.updateStatus(t.id, "in_progress"); toast.success("Ticket accepted."); load(); }}>Accept</button>
+                    )}
+                    {isHr && tab === "team" && (t.status === "open" || t.status === "in_progress") && (
+                      <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "4px 8px", color: "hsl(var(--success))" }} onClick={async () => { await ticketsApi.updateStatus(t.id, "resolved", "Resolved by HR"); toast.success("Ticket resolved."); load(); }}>Resolve</button>
+                    )}
+                    {isHr && tab === "team" && t.status === "open" && (
+                      <button className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "4px 8px", color: "hsl(var(--destructive))" }} onClick={async () => { await ticketsApi.updateStatus(t.id, "rejected", "Rejected by HR"); toast.info("Ticket rejected."); load(); }}>Reject</button>
+                    )}
+                    <MessageSquare size={16} color="var(--text-tertiary)" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -177,6 +204,7 @@ function CreateTicketModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <label>Request Type</label>
             <select className="input" value={ticketType} onChange={(e) => setTicketType(e.target.value as TicketType)}>
               <option value="leave">Leave Request</option>
+              <option value="wfh">Work From Home</option>
               <option value="document_update">Document Update</option>
               <option value="profile_edit">Profile Edit</option>
               <option value="certification">Certification</option>
@@ -241,7 +269,7 @@ function TicketDetailModal({ ticket, onClose, onUpdated }: { ticket: Ticket; onC
           <div>
             <h2 style={{ marginBottom: 4 }}>{ticket.ticket_number}</h2>
             <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
-              {TYPE_LABELS[ticket.ticket_type]} · {ticket.status.replace("_", " ")} · {new Date(ticket.created_at).toLocaleDateString()}
+              {TYPE_LABELS[ticket.ticket_type] || ticket.ticket_type} · {String(ticket.status).replace("_", " ")} · {new Date(ticket.created_at).toLocaleDateString()}
             </div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>

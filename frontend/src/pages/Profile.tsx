@@ -1,80 +1,58 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Pencil, ShieldCheck, Clock, Send, User, Briefcase, Calendar, MapPin, Download, MoreVertical } from "lucide-react";
+import {
+  Pencil, ShieldCheck, Clock, Send, User, Briefcase, Calendar, MapPin,
+  Download, MoreVertical, Trash2, Camera, Share2, LogOut, Mail, Heart,
+  Phone, UserCheck, Shield, Sparkles, MapPinCheck, PhoneCall, CheckCircle2
+} from "lucide-react";
 import { profileApi, type Address, type Profile as ProfileType, type EditableSections } from "../api/profile";
 import { editRequestsApi, type EditRequest } from "../api/editRequests";
 import { ApiError } from "../api/client";
 import AsyncState from "../components/AsyncState";
+import { motion } from "framer-motion";
 
-function Section({
-  title,
-  rows,
-  editable,
-  onEdit,
-  canRequest,
-  onRequestEdit,
-  pendingRequest,
-  icon,
-  iconVariant = "indigo",
-  id,
+
+function ProfileActionsMenu({
+  hasPhoto,
+  onRemovePhoto,
+  onDownloadProfile,
 }: {
-  title: string;
-  rows: [string, string][];
-  editable?: boolean;
-  onEdit?: () => void;
-  canRequest?: boolean;
-  onRequestEdit?: () => void;
-  pendingRequest?: EditRequest | null;
-  icon?: React.ReactNode;
-  iconVariant?: "indigo" | "blue" | "orange";
-  id?: string;
+  hasPhoto: boolean;
+  onRemovePhoto: () => void;
+  onDownloadProfile: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="card" id={id}>
-      <div className="row" style={{ marginBottom: 20 }}>
-        <div className="section-title-container">
-          {icon && <div className={`section-title-icon section-title-${iconVariant}`}>{icon}</div>}
-          <h2 style={{ fontSize: 16, fontWeight: 600 }}>{title}</h2>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {editable && (
-            <button className="btn btn-outline btn-sm" onClick={onEdit}>
-              <Pencil size={14} /> Edit
+    <div className="profile-menu-wrapper">
+      <button
+        className="profile-action-btn"
+        aria-label="More actions"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <MoreVertical size={16} />
+      </button>
+      {open && (
+        <>
+          <div className="profile-menu-backdrop" onClick={() => setOpen(false)} />
+          <div className="profile-menu-dropdown">
+            <button className="profile-menu-item" onClick={() => { onDownloadProfile(); setOpen(false); }}>
+              <Download size={14} />
+              <span>Download Profile</span>
             </button>
-          )}
-          {!editable && canRequest && !pendingRequest && (
-            <button className="btn btn-outline btn-sm" onClick={onRequestEdit}>
-              <Send size={14} /> Request Edit
+            <button className="profile-menu-item" onClick={() => { window.print(); setOpen(false); }}>
+              <Share2 size={14} />
+              <span>Print / Share</span>
             </button>
-          )}
-          {pendingRequest && pendingRequest.status === "pending" && (
-            <span className="badge badge-warning" style={{ fontSize: 12 }}>
-              <Clock size={12} /> Request Pending
-            </span>
-          )}
-          {pendingRequest && pendingRequest.status === "approved" && (
-            <span className="badge badge-info" style={{ fontSize: 12 }}>
-              <Clock size={12} /> Edit Window Open
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="profile-detail-grid">
-        {rows.map(([label, value]) => {
-          const isStatusActive = value === "Active";
-          const valueClass = "profile-detail-value" + (isStatusActive ? " profile-detail-value-active" : "");
-          return (
-            <div key={label} className="profile-detail-item">
-              <div className="profile-detail-label" title={label}>
-                {label}
-              </div>
-              <div className={valueClass} title={value || "—"}>
-                {value || "—"}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            {hasPhoto && (
+              <button className="profile-menu-item profile-menu-item-danger" onClick={() => { onRemovePhoto(); setOpen(false); }}>
+                <Trash2 size={14} />
+                <span>Remove Profile Picture</span>
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -96,6 +74,7 @@ export default function Profile() {
   const [editAddress, setEditAddress] = useState(false);
   const [requestModal, setRequestModal] = useState<string | null>(null); // section name
   const [submitModal, setSubmitModal] = useState<EditRequest | null>(null);
+  const [showRequestButtons, setShowRequestButtons] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -154,8 +133,11 @@ export default function Profile() {
   };
 
   const handleEditClick = () => {
+    setShowRequestButtons(true);
     if (perms.phone) {
       setEditPhone(true);
+    } else if (perms.address) {
+      setEditAddress(true);
     } else {
       const el = document.getElementById("personal-info-section");
       el?.scrollIntoView({ behavior: "smooth" });
@@ -166,11 +148,37 @@ export default function Profile() {
     window.print();
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image too large. Maximum 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      try {
+        const updated = await profileApi.updatePhoto(dataUrl);
+        setProfile(updated);
+      } catch {
+        alert("Failed to upload photo.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div>
       <AsyncState loading={loading} error={error}>
         {profile && (
-          <div className="stack">
+          <motion.div
+            className="stack"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            {/* Page Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <h1 className="page-header-title" style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>My Profile</h1>
@@ -180,23 +188,31 @@ export default function Profile() {
                   <span style={{ color: "var(--primary-color)" }}>My Profile</span>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <button className="btn btn-outline" style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8, height: 38 }} onClick={handleDownloadProfile}>
-                  <Download size={15} /> Download Profile
-                </button>
-                <button className="btn" style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 8, height: 38 }} onClick={handleEditClick}>
-                  <Pencil size={15} /> Edit Profile
-                </button>
-              </div>
             </div>
 
+            {/* Profile Header Card */}
             <div className="profile-header-card">
               <div className="profile-header-avatar-container">
-                <img
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80"
-                  alt={profile.full_name}
-                  className="profile-header-avatar"
-                />
+                {profile.profile_photo ? (
+                  <img
+                    src={profile.profile_photo}
+                    alt={profile.full_name}
+                    className="profile-header-avatar"
+                  />
+                ) : (
+                  <div className="profile-header-avatar profile-header-avatar-initials">
+                    {profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                  </div>
+                )}
+                <label className="profile-photo-upload-btn" title="Change photo">
+                  <Pencil size={12} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    style={{ display: "none" }}
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
                 <div className="profile-header-status-dot" />
               </div>
               <div className="profile-header-info">
@@ -218,100 +234,247 @@ export default function Profile() {
                 </div>
               </div>
               <div className="profile-header-actions">
+                <button
+                  className="btn"
+                  style={{
+                    borderRadius: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    height: 38,
+                    backgroundColor: "#ffffff",
+                    color: "#2563eb",
+                    fontWeight: 600,
+                    border: "none"
+                  }}
+                  onClick={handleEditClick}
+                >
+                  <Pencil size={15} /> Edit Profile
+                </button>
                 <span className="profile-header-badge">
                   {profile.employment_status ?? "Active"}
                 </span>
-                <button className="profile-action-btn" aria-label="More actions">
-                  <MoreVertical size={16} />
-                </button>
+                <ProfileActionsMenu
+                  hasPhoto={!!profile.profile_photo}
+                  onRemovePhoto={async () => {
+                    const updated = await profileApi.removePhoto();
+                    setProfile(updated);
+                  }}
+                  onDownloadProfile={handleDownloadProfile}
+                />
               </div>
             </div>
 
-            {hasAnyPermission && (
-              <div className="access-banner">
-                <ShieldCheck size={20} />
-                <div>
-                  <strong>Temporary edit access granted</strong>
-                  <p>
-                    You can currently edit:{" "}
+            {/* Dashboard Layout */}
+            <div className="profile-dashboard-layout">
+              {/* Left Column - Main Info */}
+              <div className="profile-main-content">
+                {/* Personal Information Card */}
+                <div className="card" id="personal-info-section">
+                  <div className="row" style={{ marginBottom: 20 }}>
+                    <div className="section-title-container">
+                      <div className="section-title-icon section-title-indigo">
+                        <User size={16} />
+                      </div>
+                      <h2 style={{ fontSize: 16, fontWeight: 600 }}>Personal Information</h2>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      {perms.phone ? (
+                        <button className="btn btn-outline btn-sm" onClick={() => setEditPhone(true)}>
+                          <Pencil size={14} /> Edit Phone
+                        </button>
+                      ) : (
+                        showRequestButtons && !getActiveRequest("phone") && (
+                          <button className="btn btn-outline btn-sm" onClick={() => setRequestModal("phone")}>
+                            <Send size={14} /> Request Phone Edit
+                          </button>
+                        )
+                      )}
+                      {getActiveRequest("phone")?.status === "pending" && (
+                        <span className="badge badge-warning" style={{ fontSize: 12 }}>
+                          <Clock size={12} /> Phone Request Pending
+                        </span>
+                      )}
+                      {getActiveRequest("phone")?.status === "approved" && (
+                        <span className="badge badge-info" style={{ fontSize: 12 }}>
+                          <Clock size={12} /> Phone Edit Open
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="profile-info-row-grid">
                     {[
-                      perms.phone && "Phone",
-                      perms.address && "Address",
-                      perms.certifications && "Certifications",
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
-                    . This access will expire automatically.
-                  </p>
-                  {editReqs
-                    .filter((r) => r.status === "approved")
-                    .map((r) => (
-                      <button
-                        key={r.id}
-                        className="btn btn-sm"
-                        style={{ marginTop: 8 }}
-                        onClick={() => setSubmitModal(r)}
-                      >
-                        ✓ Submit {r.section} changes for HR confirmation
-                      </button>
+                      { label: "Employee ID", value: profile.employee_code, icon: <Shield size={16} /> },
+                      { label: "Full Name", value: profile.full_name, icon: <User size={16} /> },
+                      { label: "Email Address", value: profile.email, icon: <Mail size={16} /> },
+                      { label: "Mobile Number", value: profile.mobile_number, icon: <Phone size={16} /> },
+                      { label: "Date of Birth", value: profile.date_of_birth, icon: <Calendar size={16} /> },
+                      { label: "Gender", value: profile.gender, icon: <UserCheck size={16} /> },
+                      { label: "Marital Status", value: profile.marital_status, icon: <Heart size={16} /> },
+                    ].map((row, idx) => (
+                      <div key={idx} className="profile-info-row">
+                        <div className="profile-info-row-icon">{row.icon}</div>
+                        <div className="profile-info-row-content">
+                          <span className="profile-info-row-label">{row.label}</span>
+                          <span className="profile-info-row-value">{row.value || "—"}</span>
+                        </div>
+                      </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Address & Emergency Contact Card */}
+                <div className="card">
+                  <div className="row" style={{ marginBottom: 20 }}>
+                    <div className="section-title-container">
+                      <div className="section-title-icon section-title-orange">
+                        <MapPin size={16} />
+                      </div>
+                      <h2 style={{ fontSize: 16, fontWeight: 600 }}>Address & Emergency Contacts</h2>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      {perms.address ? (
+                        <button className="btn btn-outline btn-sm" onClick={() => setEditAddress(true)}>
+                          <Pencil size={14} /> Edit Address
+                        </button>
+                      ) : (
+                        showRequestButtons && !getActiveRequest("address") && (
+                          <button className="btn btn-outline btn-sm" onClick={() => setRequestModal("address")}>
+                            <Send size={14} /> Request Address Edit
+                          </button>
+                        )
+                      )}
+                      {getActiveRequest("address")?.status === "pending" && (
+                        <span className="badge badge-warning" style={{ fontSize: 12 }}>
+                          <Clock size={12} /> Address Request Pending
+                        </span>
+                      )}
+                      {getActiveRequest("address")?.status === "approved" && (
+                        <span className="badge badge-info" style={{ fontSize: 12 }}>
+                          <Clock size={12} /> Address Edit Open
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="address-card-group">
+                    <div className="address-mini-card">
+                      <div className="address-mini-card-icon">
+                        <MapPin size={20} />
+                      </div>
+                      <div>
+                        <span className="profile-info-row-label">Current Address</span>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", marginTop: 6, lineHeight: 1.5 }}>
+                          {formatAddress(profile.addresses.find((a) => a.address_type === "current"))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="address-mini-card">
+                      <div className="address-mini-card-icon">
+                        <MapPinCheck size={20} />
+                      </div>
+                      <div>
+                        <span className="profile-info-row-label">Permanent Address</span>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", marginTop: 6, lineHeight: 1.5 }}>
+                          {formatAddress(profile.addresses.find((a) => a.address_type === "permanent"))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 20 }}>
+                    <div className="emergency-card">
+                      <div className="emergency-card-icon">
+                        <PhoneCall size={20} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span className="profile-info-row-label" style={{ color: "#ef4444" }}>Emergency Contact</span>
+                        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginTop: 6 }}>
+                          <div>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>
+                              {profile.emergency_contacts[0]?.contact_name ?? "—"}
+                            </span>
+                            {profile.emergency_contacts[0]?.relationship_to && (
+                              <span className="badge badge-outline" style={{ marginLeft: 8, fontSize: 11, padding: "2px 8px" }}>
+                                {profile.emergency_contacts[0].relationship_to}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)" }}>
+                            {profile.emergency_contacts[0]?.contact_number ?? "—"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
 
-            <div className="profile-info-grid">
-              <Section
-                id="personal-info-section"
-                title="Personal Information"
-                editable={perms.phone}
-                onEdit={() => setEditPhone(true)}
-                canRequest={!perms.phone}
-                onRequestEdit={() => setRequestModal("phone")}
-                pendingRequest={getActiveRequest("phone")}
-                icon={<User />}
-                iconVariant="indigo"
-                rows={[
-                  ["Employee ID", profile.employee_code],
-                  ["Full Name", profile.full_name],
-                  ["Email", profile.email],
-                  ["Mobile", profile.mobile_number ?? ""],
-                  ["Date of Birth", profile.date_of_birth ?? ""],
-                  ["Gender", profile.gender ?? ""],
-                  ["Marital Status", profile.marital_status ?? ""],
-                ]}
-              />
-              <Section
-                title="Employment Information"
-                icon={<Briefcase />}
-                iconVariant="blue"
-                rows={[
-                  ["Date of Joining", profile.date_of_joining ?? ""],
-                  ["Department", profile.department ?? ""],
-                  ["Designation", profile.designation ?? ""],
-                  ["Manager", profile.manager_name ?? ""],
-                  ["Employment Status", profile.employment_status ?? ""],
-                  ["Work Location", profile.work_location ?? ""],
-                ]}
-              />
+              {/* Right Column - Sidebar */}
+              <div className="profile-sidebar-content">
+                {/* Temporary Edit Access Status */}
+                {hasAnyPermission && (
+                  <div className="card" style={{ borderColor: "rgba(147, 51, 234, 0.25)", background: "var(--primary-light)", display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <ShieldCheck size={22} style={{ color: "var(--primary-color)" }} />
+                      <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: "var(--text)" }}>Temporary Edit Window</h3>
+                    </div>
+                    <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
+                      You have active permission to edit your details. Changes must be finalized and submitted for HR confirmation.
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+                      {editReqs
+                        .filter((r) => r.status === "approved")
+                        .map((r) => (
+                          <button
+                            key={r.id}
+                            className="btn btn-sm"
+                            style={{ justifyContent: "center", width: "100%", marginTop: 8 }}
+                            onClick={() => setSubmitModal(r)}
+                          >
+                            ✓ Submit {r.section} changes
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Employment Information Card */}
+                <div className="card">
+                  <div className="row" style={{ marginBottom: 16 }}>
+                    <div className="section-title-container">
+                      <div className="section-title-icon section-title-blue">
+                        <Briefcase size={16} />
+                      </div>
+                      <h2 style={{ fontSize: 15, fontWeight: 600 }}>Employment Details</h2>
+                    </div>
+                  </div>
+
+                  <div className="employment-sidebar-card">
+                    {[
+                      { label: "Date of Joining", value: profile.date_of_joining ? formatDateJoined(profile.date_of_joining) : "—", icon: <Calendar size={16} /> },
+                      { label: "Department", value: profile.department, icon: <Briefcase size={16} /> },
+                      { label: "Designation", value: profile.designation, icon: <Sparkles size={16} /> },
+                      { label: "Reporting Manager", value: profile.manager_name, icon: <User size={16} /> },
+                      { label: "Employment Status", value: profile.employment_status, icon: <CheckCircle2 size={16} /> },
+                      { label: "Work Location", value: profile.work_location, icon: <MapPin size={16} /> },
+                    ].map((item, idx) => (
+                      <div key={idx} className="employment-sidebar-item">
+                        <div className="employment-sidebar-icon">{item.icon}</div>
+                        <div className="employment-sidebar-info">
+                          <span className="employment-sidebar-label">{item.label}</span>
+                          <span className="employment-sidebar-value">{item.value || "—"}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <Section
-              title="Address & Emergency Contact"
-              editable={perms.address}
-              onEdit={() => setEditAddress(true)}
-              canRequest={!perms.address}
-              onRequestEdit={() => setRequestModal("address")}
-              pendingRequest={getActiveRequest("address")}
-              icon={<MapPin />}
-              iconVariant="orange"
-              rows={[
-                ["Current Address", formatAddress(profile.addresses.find((a) => a.address_type === "current"))],
-                ["Permanent Address", formatAddress(profile.addresses.find((a) => a.address_type === "permanent"))],
-                ["Emergency Contact", profile.emergency_contacts[0]?.contact_name ?? ""],
-                ["Relationship", profile.emergency_contacts[0]?.relationship_to ?? ""],
-                ["Contact Number", profile.emergency_contacts[0]?.contact_number ?? ""],
-              ]}
-            />
 
+            {/* Modals */}
             {editPhone && (
               <EditPhoneModal
                 current={profile.mobile_number ?? ""}
@@ -349,7 +512,7 @@ export default function Profile() {
                 onSubmit={() => handleSubmitChanges(submitModal)}
               />
             )}
-          </div>
+          </motion.div>
         )}
       </AsyncState>
     </div>
