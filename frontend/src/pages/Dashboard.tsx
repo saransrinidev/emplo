@@ -73,41 +73,52 @@ function money(value: string | null): string {
 
 const WelcomeIllustration = () => (
   <svg width="180" height="120" viewBox="0 0 180 120" fill="none" style={{ display: "block" }}>
-    {/* Decorative background shapes with opacity */}
-    <circle cx="110" cy="65" r="45" fill="var(--primary-color)" opacity="0.12" />
-    <circle cx="130" cy="50" r="25" fill="var(--primary-color)" opacity="0.18" />
-    
     {/* Floor/desk base */}
     <path d="M30 100H150" stroke="var(--primary-color)" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
-    
+
     {/* Potted Plant */}
-    <rect x="42" y="82" width="12" height="18" rx="2" fill="#f97316" />
-    <path d="M40 82H56" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" />
-    <path d="M48 82C44 74 41 78 43 70C45 62 48 66 48 82Z" fill="#22c55e" />
-    <path d="M48 82C52 74 55 78 53 70C51 62 48 66 48 82Z" fill="#15803d" />
-    <path d="M48 82C40 76 43 73 37 68C31 63 38 67 48 82Z" fill="#4ade80" />
+    <g className="welcome-svg-plant">
+      <rect x="42" y="82" width="12" height="18" rx="2" fill="#f97316" />
+      <path d="M40 82H56" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" />
+      <path d="M48 82C44 74 41 78 43 70C45 62 48 66 48 82Z" fill="#22c55e" />
+      <path d="M48 82C52 74 55 78 53 70C51 62 48 66 48 82Z" fill="#15803d" />
+      <path d="M48 82C40 76 43 73 37 68C31 63 38 67 48 82Z" fill="#4ade80" />
+    </g>
 
     {/* Laptop */}
     <rect x="110" y="82" width="32" height="18" rx="2" fill="#cbd5e1" />
     <path d="M104 100H148" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" />
-    <rect x="114" y="85" width="24" height="12" rx="1" fill="#f8fafc" />
+    <rect x="114" y="85" width="24" height="12" rx="1" fill="#f8fafc" className="welcome-svg-screen-light" />
     <circle cx="126" cy="91" r="3" fill="#031273" opacity="0.8" />
     <line x1="117" y1="88" x2="127" y2="88" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
     <line x1="117" y1="94" x2="123" y2="94" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" />
-    
+
     {/* Person */}
-    <path d="M78 100C78 90 85 82 94 82H102C111 82 118 90 118 100V100H78V100Z" fill="var(--primary-color)" />
-    <rect x="94" y="74" width="8" height="8" fill="#fed7aa" />
-    <circle cx="98" cy="65" r="11" fill="#fed7aa" />
-    <path d="M87 65C87 59 92 54 98 54C104 54 109 59 109 65C109 66 108 67 106 67C104 67 103 65 98 65C93 65 92 67 90 67C88 67 87 66 87 65Z" fill="#334155" />
-    <rect x="94" y="52" width="8" height="6" rx="3" fill="#334155" />
-    <path d="M84 97L106 91" stroke="#fed7aa" strokeWidth="3.5" strokeLinecap="round" />
+    <g className="welcome-svg-person">
+      <path d="M78 100C78 90 85 82 94 82H102C111 82 118 90 118 100V100H78V100Z" fill="var(--primary-color)" />
+      <rect x="94" y="74" width="8" height="8" fill="#fed7aa" />
+      <circle cx="98" cy="65" r="11" fill="#fed7aa" />
+      <path d="M87 65C87 59 92 54 98 54C104 54 109 59 109 65C109 66 108 67 106 67C104 67 103 65 98 65C93 65 92 67 90 67C88 67 87 66 87 65Z" fill="#334155" />
+      <rect x="94" y="52" width="8" height="6" rx="3" fill="#334155" />
+      <path d="M84 97L106 91" stroke="#fed7aa" strokeWidth="3.5" strokeLinecap="round" />
+    </g>
   </svg>
 );
 
 function WelcomeBanner({ taskCount }: { taskCount?: number }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    notificationsApi
+      .list()
+      .then((data) => setNotifications(data.slice(0, 2)))
+      .catch(() => { })
+      .finally(() => setLoading(false));
+  }, [user]);
 
   if (!user) return null;
 
@@ -142,21 +153,23 @@ function WelcomeBanner({ taskCount }: { taskCount?: number }) {
   }
 
   const hasTasks = taskCount !== undefined && taskCount > 0;
-  const subtitleText = hasTasks
-    ? `Welcome back! You have ${taskCount} task${taskCount > 1 ? "s" : ""} to complete today.`
-    : "Welcome back! Your portal is up to date and running fine.";
+  const subtitleText = hasTasks ? (
+    <>
+      Welcome back! You have <span className="welcome-subtitle-accent">{taskCount}</span> task{taskCount > 1 ? "s" : ""} to complete today.
+    </>
+  ) : (
+    "Welcome back! Your portal is up to date and running fine."
+  );
 
   return (
     <div className="welcome-banner">
-      {/* Decorative backdrop shapes */}
-      <div className="welcome-banner-circle welcome-banner-circle-1" />
-      <div className="welcome-banner-circle welcome-banner-circle-2" />
-      <div className="welcome-banner-circle welcome-banner-circle-3" />
-
       <div className="welcome-banner-content">
-        <span className="welcome-banner-date">{formattedDate}</span>
+        <span className="welcome-banner-date">
+          <span className="welcome-date-pulse" />
+          {formattedDate}
+        </span>
         <h1 className="welcome-banner-title" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {greetingWord}, {user.name}! <span className="hand-wave-emoji">👋</span>
+          {greetingWord}, <span className="welcome-name-highlight">{user.name}</span>! <span className="hand-wave-emoji">👋</span>
         </h1>
         <p className="welcome-banner-subtitle">
           {subtitleText}
@@ -168,8 +181,29 @@ function WelcomeBanner({ taskCount }: { taskCount?: number }) {
           {btnText} <ArrowRight size={14} style={{ marginLeft: 6 }} />
         </button>
       </div>
-      <div className="welcome-banner-graphic">
-        <WelcomeIllustration />
+
+      <div className="welcome-banner-activity">
+        <div className="welcome-banner-activity-header">
+          <span className="welcome-banner-activity-title">Recent Activity</span>
+          <Link to="/notifications" className="welcome-banner-activity-link">
+            View all
+          </Link>
+        </div>
+        <div className="welcome-banner-activity-list">
+          {loading && <div className="welcome-banner-activity-loading">Loading activity...</div>}
+          {!loading && notifications.length === 0 && (
+            <div className="welcome-banner-activity-empty">No recent activity</div>
+          )}
+          {!loading && notifications.map((n) => {
+            const cleanMsg = n.message.replace(/\s*\[employee:[a-f0-9-]+\]/i, "");
+            return (
+              <div key={n.id} className="welcome-banner-activity-item">
+                <div className="welcome-banner-activity-item-title">{n.title}</div>
+                <div className="welcome-banner-activity-item-desc" title={cleanMsg}>{cleanMsg}</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -193,7 +227,7 @@ function UpcomingReminders() {
           .slice(0, 4);
         setCerts(withExpiry);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -262,7 +296,7 @@ function RecentNotifications() {
     notificationsApi
       .list()
       .then((data) => setNotifications(data.slice(0, 5)))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -364,7 +398,6 @@ function EmployeeDashboard() {
 
             <FadeIn delay={0.5} className="dashboard-columns">
               <UpcomingReminders />
-              <RecentNotifications />
             </FadeIn>
 
             <FadeIn delay={0.7}>
@@ -414,7 +447,6 @@ function ManagerDashboard() {
 
             <FadeIn delay={0.5} className="dashboard-columns">
               <UpcomingReminders />
-              <RecentNotifications />
             </FadeIn>
           </div>
         </>
@@ -444,13 +476,10 @@ function HrDashboard() {
               <StaggerItem><Stat title="Expired Certs" value={String(data.expired_certifications)} icon={<ShieldAlert />} variant="rose" bgClass="bg-expired-certs" description="Certificates already expired" /></StaggerItem>
               <StaggerItem><Stat title="Pending Verifications" value={String(data.pending_verifications)} icon={<Clock />} variant="amber" bgClass="bg-pending-verifications" description="Awaiting verification" /></StaggerItem>
               <StaggerItem><Stat title="Certifications Expiring in 30d" value={String(data.certs_expiring_30)} icon={<Timer />} variant="pink" bgClass="bg-certs-30" description="Certificates expiring soon" /></StaggerItem>
-              <StaggerItem><Stat title="Certifications Expiring in 90d" value={String(data.certs_expiring_90)} icon={<AlertTriangle />} variant="yellow" bgClass="bg-certs-90" description="Certifications expiring soon" /></StaggerItem>
               <StaggerItem><Stat title="Recent Salary Revisions" value={String(data.recent_salary_revisions)} subtitle="Last 30 days" icon={<Banknote />} variant="blue" bgClass="bg-salary-revisions" description="Salary revisions in the last 30 days" /></StaggerItem>
             </StaggerContainer>
 
-            <FadeIn delay={0.6} className="dashboard-columns">
-              <RecentNotifications />
-            </FadeIn>
+            {/* Recent Activity has been moved to the header welcome banner */}
           </div>
         </>
       )}

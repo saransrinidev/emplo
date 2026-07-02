@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { 
+import {
   BellRing, User, Briefcase, Calendar, MapPin, ChevronLeft,
   Mail, Phone, Cake, Users, Hash, Award, Activity, FileText
 } from "lucide-react";
@@ -18,8 +18,6 @@ import AsyncState from "../components/AsyncState";
 import Breadcrumbs from "../components/Breadcrumbs";
 import ImageModal from "../components/ImageModal";
 import Skeleton from "../components/Skeleton";
-import SalaryStructureModal from "../components/SalaryStructureModal";
-import EditSalaryStructureModal from "../components/EditSalaryStructureModal";
 import StatusBadge from "../components/StatusBadge";
 import { useApi } from "../hooks/useApi";
 
@@ -67,7 +65,7 @@ function Section({
       <div className="row" style={{ marginBottom: 20, display: "flex", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {icon && (
-            <div 
+            <div
               className={`section-title-icon section-title-${iconVariant}`}
               style={{
                 display: "inline-flex",
@@ -91,7 +89,7 @@ function Section({
           const isStatusActive = value === "Active";
           const isStatusLeave = value === "On Leave";
           const isStatusTerminated = value === "Terminated";
-          
+
           let valueStyle: React.CSSProperties = {};
           if (isStatusActive) {
             valueStyle = { color: "#10b981", fontWeight: 700 };
@@ -211,7 +209,7 @@ export default function EmployeeDetail() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "var(--text)" }}>{emp.full_name}</h1>
-                  
+
                   {emp.employment_status === "Active" && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
                       <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
@@ -231,11 +229,11 @@ export default function EmployeeDetail() {
                     </span>
                   )}
                 </div>
-                
+
                 <div style={{ color: "var(--text-secondary)", fontSize: 15, fontWeight: 500, marginTop: 4 }}>
                   {emp.designation ?? "—"} <span style={{ color: "hsl(var(--border) / 0.5)", margin: "0 8px" }}>|</span> {emp.department ?? "—"}
                 </div>
-                
+
                 <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap", color: "var(--text-muted)", fontSize: 13 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <User size={14} />
@@ -294,7 +292,7 @@ export default function EmployeeDetail() {
             {tab === "profile" && <ProfileTab emp={emp} />}
             {tab === "documents" && <DocumentsTab empId={id} isHr={isHr} />}
             {tab === "certifications" && <CertsTab empId={id} isHr={isHr} />}
-            {tab === "salary" && <SalaryTab empId={id} isHr={isHr} empName={emp.full_name} empRole={emp.designation || undefined} />}
+            {tab === "salary" && <SalaryTab empId={id} isHr={isHr} />}
             {tab === "performance" && <PerfTab empId={id} isHr={isHr} />}
             {tab === "permissions" && isHr && <PermissionsTab empId={id} />}
           </>
@@ -332,8 +330,8 @@ function SendAlertModal({
   const recipientDesc = notifyEmployee && notifyManager
     ? `${employeeName} and their manager`
     : notifyEmployee
-    ? employeeName
-    : `${employeeName}'s manager`;
+      ? employeeName
+      : `${employeeName}'s manager`;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -751,14 +749,12 @@ function AddCertForm({ employeeId, onSuccess }: { employeeId: string; onSuccess:
   );
 }
 
-function SalaryTab({ empId, isHr, empName, empRole }: { empId: string; isHr: boolean; empName?: string; empRole?: string }) {
+function SalaryTab({ empId, isHr }: { empId: string; isHr: boolean }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const current = useApi(() => salaryApi.current(empId), [empId, refreshKey]);
   const history = useApi(() => salaryApi.history(empId), [empId, refreshKey]);
   const money = (v: string | null) => v ? `${Number(v).toLocaleString()}` : "—";
   const [showForm, setShowForm] = useState(false);
-  const [showStructure, setShowStructure] = useState(false);
-  const [showEditStructure, setShowEditStructure] = useState(false);
 
   return (
     <AsyncState loading={current.loading || history.loading} error={current.error || history.error}>
@@ -766,17 +762,13 @@ function SalaryTab({ empId, isHr, empName, empRole }: { empId: string; isHr: boo
         <div className="card"><div className="card-title">Current Salary</div><div className="card-value">{money(current.data?.current_salary ?? null)}</div></div>
         <div className="card"><div className="card-title">Latest Revision</div><div className="card-value">{current.data?.latest_revision_date ?? "—"}</div></div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <button className="btn btn-outline btn-sm" onClick={() => setShowStructure(true)}>View Salary Structure</button>
-        {isHr && <button className="btn btn-outline btn-sm" onClick={() => setShowEditStructure(true)}>Edit Structure</button>}
-        {isHr && (
+      {isHr && (
+        <div style={{ marginBottom: 12 }}>
           <button className="btn btn-sm" onClick={() => setShowForm((v) => !v)}>
             {showForm ? "Cancel" : "+ Add Salary Revision"}
           </button>
-        )}
-      </div>
-      {showStructure && <SalaryStructureModal employeeId={empId} employeeName={empName} employeeRole={empRole} onClose={() => setShowStructure(false)} />}
-      {showEditStructure && <EditSalaryStructureModal employeeId={empId} onClose={() => setShowEditStructure(false)} />}
+        </div>
+      )}
       {showForm && isHr && (
         <SalaryRevisionForm employeeId={empId} onSuccess={() => { setShowForm(false); setRefreshKey((k) => k + 1); }} />
       )}

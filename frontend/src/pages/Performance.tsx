@@ -92,7 +92,7 @@ function TeamPerformance() {
     employeesApi
       .list()
       .then(setTeam)
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -164,7 +164,7 @@ function ViewReviewsModal({
     performanceApi
       .list(employee.id)
       .then(setReviews)
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [employee.id]);
 

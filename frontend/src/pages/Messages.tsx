@@ -30,10 +30,9 @@ export default function Messages() {
     pollRef.current = setInterval(async () => {
       try {
         const msgs = await messagesApi.getConversation(selectedId);
-        // Only update state if message count changed (avoids unnecessary re-renders)
-        setMessages((prev) => msgs.length !== prev.length ? msgs : prev);
+        setMessages(msgs);
       } catch { /* ignore */ }
-    }, 2000);
+    }, 3000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [selectedId]);
 
@@ -51,32 +50,14 @@ export default function Messages() {
 
   const handleSend = async () => {
     if (!newMsg.trim() || !selectedId) return;
-    const content = newMsg.trim();
-    setNewMsg(""); // Clear immediately for snappy UX
-
-    // Optimistic update — show message instantly
-    const optimisticMsg: MessageType = {
-      id: `temp-${Date.now()}`,
-      sender_id: user?.id || "",
-      sender_name: user?.name || null,
-      receiver_id: selectedId,
-      receiver_name: null,
-      content,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimisticMsg]);
-
+    setSending(true);
     try {
-      const msg = await messagesApi.send(selectedId, content);
-      // Replace optimistic with real
-      setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? msg : m));
+      const msg = await messagesApi.send(selectedId, newMsg.trim());
+      setMessages((prev) => [...prev, msg]);
+      setNewMsg("");
+      // Refresh conversations
       messagesApi.conversations().then(setConversations);
-    } catch {
-      // Remove optimistic on failure
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
-      setNewMsg(content); // Restore the message
-    }
+    } finally { setSending(false); }
   };
 
   const selectedName = conversations.find(c => c.employee_id === selectedId)?.employee_name
@@ -109,7 +90,7 @@ export default function Messages() {
               >
                 {c.employee_photo
                   ? <img src={c.employee_photo} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
-                  : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "hsl(var(--primary) / 0.1)", color: "var(--primary-color)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{c.employee_name.slice(0,2).toUpperCase()}</div>
+                  : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "hsl(var(--primary) / 0.1)", color: "var(--primary-color)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{c.employee_name.slice(0, 2).toUpperCase()}</div>
                 }
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{c.employee_name}</div>
@@ -141,7 +122,7 @@ export default function Messages() {
                 <div key={c.id} onClick={() => openConversation(c.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", borderRadius: 8, marginBottom: 4 }} className="notification-card">
                   {c.photo
                     ? <img src={c.photo} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
-                    : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "hsl(var(--primary) / 0.1)", color: "var(--primary-color)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{c.name.slice(0,2).toUpperCase()}</div>
+                    : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "hsl(var(--primary) / 0.1)", color: "var(--primary-color)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{c.name.slice(0, 2).toUpperCase()}</div>
                   }
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>

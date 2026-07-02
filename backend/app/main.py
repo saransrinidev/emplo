@@ -41,7 +41,7 @@ from app.db.session import get_db
 
 app = FastAPI(title="Emplo API", version="1.0.0", description="HRMS backend for Emplo")
 
-# Rate limiter
+# Rate Limiter Configuration
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

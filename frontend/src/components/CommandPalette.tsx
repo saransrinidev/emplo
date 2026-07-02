@@ -53,7 +53,7 @@ export default function CommandPalette() {
         employeesApi.list().then((data) => {
           setEmployees(data);
           setLoadedEmployees(true);
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
   }, [open]);

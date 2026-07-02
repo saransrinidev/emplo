@@ -4,7 +4,31 @@ import { employeesApi, type Employee, type EmployeeCreate, type EmployeeWithRole
 import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/PageHeader";
-import { Eye, Trash2, UserCheck, Shield, Key, Search, Grid, List, Briefcase, Activity, ChevronDown } from "lucide-react";
+import { Eye, Trash2, UserCheck, Shield, Key, Search, Grid, List, Briefcase, Activity, ChevronDown, Users, Calendar, Building, Mail } from "lucide-react";
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 120,
+      damping: 16
+    }
+  }
+};
 
 const EMPTY_FORM: EmployeeCreate = {
   employee_code: "",
@@ -94,7 +118,7 @@ export default function Employees() {
   const [terminateTarget, setTerminateTarget] = useState<EmployeeWithRole | null>(null);
   const [assignManagerTarget, setAssignManagerTarget] = useState<EmployeeWithRole | null>(null);
   const [changeRoleTarget, setChangeRoleTarget] = useState<EmployeeWithRole | null>(null);
-  
+
   // Custom View Mode: Grid (default) or Table
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
@@ -193,7 +217,11 @@ export default function Employees() {
   };
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <PageHeader
         title={isHr ? "Employees" : "My Team"}
         subtitle={isHr ? "All employee records." : "Employees who report directly to you."}
@@ -321,35 +349,46 @@ export default function Employees() {
           {/* Quick Metrics summary widgets */}
           <div className="employee-stats-grid">
             <div className="emp-stat-mini-card">
-              <span className="emp-stat-mini-label">Total Employees</span>
-              <span className="emp-stat-mini-value">{totalCount}</span>
+              <div className="emp-stat-icon-wrapper emp-stat-icon-indigo">
+                <Users size={20} />
+              </div>
+              <div className="emp-stat-content">
+                <span className="emp-stat-mini-label">Total Employees</span>
+                <span className="emp-stat-mini-value">{totalCount}</span>
+              </div>
             </div>
             <div className="emp-stat-mini-card">
-              <span className="emp-stat-mini-label">Active Staff</span>
-              <span className="emp-stat-mini-value" style={{ color: "#10b981" }}>{activeCount}</span>
+              <div className="emp-stat-icon-wrapper emp-stat-icon-green">
+                <UserCheck size={20} />
+              </div>
+              <div className="emp-stat-content">
+                <span className="emp-stat-mini-label">Active Staff</span>
+                <span className="emp-stat-mini-value" style={{ color: "#10b981" }}>{activeCount}</span>
+              </div>
             </div>
             <div className="emp-stat-mini-card">
-              <span className="emp-stat-mini-label">On Leave</span>
-              <span className="emp-stat-mini-value" style={{ color: "#f59e0b" }}>{leaveCount}</span>
+              <div className="emp-stat-icon-wrapper emp-stat-icon-amber">
+                <Calendar size={20} />
+              </div>
+              <div className="emp-stat-content">
+                <span className="emp-stat-mini-label">On Leave</span>
+                <span className="emp-stat-mini-value" style={{ color: "#f59e0b" }}>{leaveCount}</span>
+              </div>
             </div>
             <div className="emp-stat-mini-card">
-              <span className="emp-stat-mini-label">Departments</span>
-              <span className="emp-stat-mini-value" style={{ color: "#031273" }}>{deptCount}</span>
+              <div className="emp-stat-icon-wrapper emp-stat-icon-blue">
+                <Building size={20} />
+              </div>
+              <div className="emp-stat-content">
+                <span className="emp-stat-mini-label">Departments</span>
+                <span className="emp-stat-mini-value" style={{ color: "#2563eb" }}>{deptCount}</span>
+              </div>
             </div>
           </div>
 
           {/* Search & Filters Bar */}
           <div className="filter-bar-card">
-            <div className="search-input-wrapper">
-              <Search size={16} className="search-icon-inside" />
-              <input
-                className="input search-bar-input"
-                placeholder="Search name, email, code..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="filters-right">
+            <div className="filters-right" style={{ marginLeft: 0 }}>
               {isHr && (
                 <div className="filter-item-wrapper" title="Filter by Role">
                   <span className="filter-item-icon">
@@ -398,7 +437,7 @@ export default function Employees() {
                   {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
-              
+
               {/* Grid/Table View Mode Selector Toggle */}
               <div className="view-mode-switcher">
                 <button
@@ -545,11 +584,20 @@ export default function Employees() {
                   {employees.length === 0 ? "No employees yet. Add one to get started." : "No employees match your filters."}
                 </div>
               ) : (
-                <div className="employee-cards-grid">
+                <motion.div
+                  className="employee-cards-grid"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                >
                   {filtered.map((emp) => {
                     const isSelected = selected.has(emp.id);
                     return (
-                      <div key={emp.id} className={`employee-card-item ${isSelected ? "employee-card-selected" : ""}`}>
+                      <motion.div
+                        key={emp.id}
+                        variants={itemVariants}
+                        className={`employee-card-item ${isSelected ? "employee-card-selected" : ""}`}
+                      >
                         {isHr && (
                           <div className="emp-card-checkbox-wrapper">
                             <input
@@ -568,17 +616,17 @@ export default function Employees() {
                           </div>
                         </div>
                         <div className="emp-card-body" onClick={() => navigate(`/employees/${emp.id}`)} style={{ cursor: "pointer" }}>
-                          <div className="emp-card-detail">
-                            <span className="emp-card-label">Email</span>
-                            <span className="emp-card-val text-truncate" title={emp.email}>{emp.email}</span>
+                          <div className="emp-card-detail-item">
+                            <span className="emp-card-detail-icon"><Mail size={14} /></span>
+                            <span className="emp-card-detail-val" title={emp.email}>{emp.email}</span>
                           </div>
-                          <div className="emp-card-detail">
-                            <span className="emp-card-label">Department</span>
-                            <span className="emp-card-val">{emp.department ?? "—"}</span>
+                          <div className="emp-card-detail-item">
+                            <span className="emp-card-detail-icon"><Briefcase size={14} /></span>
+                            <span className="emp-card-detail-val">{emp.department ?? "—"}</span>
                           </div>
-                          <div className="emp-card-detail">
-                            <span className="emp-card-label">Designation</span>
-                            <span className="emp-card-val text-truncate" title={emp.designation ?? ""}>{emp.designation ?? "—"}</span>
+                          <div className="emp-card-detail-item">
+                            <span className="emp-card-detail-icon"><Activity size={14} /></span>
+                            <span className="emp-card-detail-val text-truncate" title={emp.designation ?? ""}>{emp.designation ?? "—"}</span>
                           </div>
                           <div className="emp-card-badges-row">
                             <RoleBadge role={emp.role} />
@@ -632,16 +680,16 @@ export default function Employees() {
                             )}
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
-                </div>
+                </motion.div>
               )}
             </div>
           )}
         </>
       )}
-    </div>
+    </motion.div>
   );
 }
 
