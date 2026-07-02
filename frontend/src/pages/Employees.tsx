@@ -104,13 +104,17 @@ function EmployeeAvatar({ name, email, photo, size = 36 }: { name: string; email
   );
 }
 
+// Module-level cache so revisiting the page shows data instantly
+// while a fresh copy loads in the background.
+let employeesCache: EmployeeWithRole[] | null = null;
+
 export default function Employees() {
   const { user } = useAuth();
   const isHr = user?.role === "hr_admin";
   const navigate = useNavigate();
 
-  const [employees, setEmployees] = useState<EmployeeWithRole[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState<EmployeeWithRole[]>(employeesCache ?? []);
+  const [loading, setLoading] = useState(employeesCache === null);
   const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [loginModal, setLoginModal] = useState<EmployeeWithRole | null>(null);
@@ -134,10 +138,14 @@ export default function Employees() {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
   const loadEmployees = () => {
-    setLoading(true);
+    if (employeesCache === null) setLoading(true);
     const fetcher = isHr ? employeesApi.listWithRoles() : employeesApi.list();
     fetcher
-      .then((data) => setEmployees(data.map((e: any) => ({ ...e, role: e.role ?? null }))))
+      .then((data) => {
+        const mapped = data.map((e: any) => ({ ...e, role: e.role ?? null }));
+        employeesCache = mapped;
+        setEmployees(mapped);
+      })
       .catch((err) =>
         setError(err instanceof ApiError ? err.message : "Failed to load."),
       )

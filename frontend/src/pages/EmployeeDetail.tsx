@@ -131,6 +131,7 @@ export default function EmployeeDetail() {
   const { data: emp, loading, error } = useApi(
     () => employeesApi.get(id!),
     [id],
+    `employee:${id}`,
   );
 
   if (!id) return null;

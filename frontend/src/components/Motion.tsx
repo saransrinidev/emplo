@@ -23,7 +23,7 @@ export function StaggerContainer({
         hidden: {},
         visible: {
           transition: {
-            staggerChildren: 0.08,
+            staggerChildren: 0.035,
             delayChildren: delay,
           },
         },
@@ -36,15 +36,13 @@ export function StaggerContainer({
 
 // Individual animated item (card, row, etc.)
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 16, scale: 0.97 },
+  hidden: { opacity: 0, y: 10 },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
     transition: {
-      type: "spring",
-      stiffness: 260,
-      damping: 24,
+      duration: 0.25,
+      ease: "easeOut",
     },
   },
 };
@@ -81,9 +79,9 @@ export function FadeIn({
     <motion.div
       className={className}
       style={style}
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut", delay }}
+      transition={{ duration: 0.25, ease: "easeOut", delay }}
     >
       {children}
     </motion.div>
@@ -94,9 +92,9 @@ export function FadeIn({
 export function PageTransition({ children }: { children: ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
     >
       {children}
     </motion.div>

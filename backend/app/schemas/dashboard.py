@@ -36,6 +36,20 @@ class HrDashboardOut(BaseModel):
     recent_salary_revisions: int = 0
 
 
+class MissingDocEmployee(BaseModel):
+    id: str
+    full_name: str
+    employee_code: str | None = None
+    department: str | None = None
+    designation: str | None = None
+    missing_documents: list[str] = []
+
+
+class MissingDocumentsOut(BaseModel):
+    total: int = 0
+    employees: list[MissingDocEmployee] = []
+
+
 class DepartmentStat(BaseModel):
     department: str
     count: int

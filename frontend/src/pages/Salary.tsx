@@ -40,8 +40,8 @@ export default function Salary() {
   const isHr = user?.role === "hr_admin";
   const toast = useToast();
 
-  const current = useApi(() => salaryApi.current());
-  const history = useApi(() => salaryApi.history());
+  const current = useApi(() => salaryApi.current(), [], "salary:current");
+  const history = useApi(() => salaryApi.history(), [], "salary:history");
   const [showModal, setShowModal] = useState(false);
   const [showStructure, setShowStructure] = useState(false);
 

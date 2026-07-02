@@ -78,7 +78,7 @@ function buildTree(employees: Employee[]): {
 }
 
 export default function OrgChart() {
-  const { data, loading, error } = useApi(() => employeesApi.listWithRoles());
+  const { data, loading, error } = useApi(() => employeesApi.listWithRoles(), [], "orgchart:employees");
   const employees = (data ?? []) as (Employee & { role?: string | null })[];
   const { roots, unassigned, allManagers, parentMap } = buildTree(employees);
 
@@ -235,7 +235,14 @@ export default function OrgChart() {
         ) : (
           <>
             {viewMode === "flow" ? (
-              <div className="org-canvas-viewport" ref={viewportRef} onMouseDown={handleMouseDown} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove}>
+              <>
+                <div className="org-legend">
+                  <span className="org-legend-item"><span className="org-legend-dot role-hr" /> HR Admin</span>
+                  <span className="org-legend-item"><span className="org-legend-dot role-manager" /> Manager</span>
+                  <span className="org-legend-item"><span className="org-legend-dot role-employee" /> Employee</span>
+                  <span className="org-legend-item" style={{ marginLeft: "auto", color: "var(--text-muted)", fontWeight: 500 }}>Drag to pan · Scroll to explore · Click a card for details</span>
+                </div>
+                <div className="org-canvas-viewport" ref={viewportRef} onMouseDown={handleMouseDown} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove}>
                 <div className="org-canvas-inner" style={{ transform: `scale(${zoom})`, transformOrigin: "top center", transition: isDragging ? "none" : "transform 0.15s ease-out" }}>
                   {roots.map((node) => (
                     <FlowTreeNodeComponent key={node.employee.id} node={node} expandedNodes={expandedNodes} toggleNode={toggleNode} searchQuery={searchQuery} onSelectEmployee={handleSelectEmployee} isRoot={true} />
@@ -249,6 +256,7 @@ export default function OrgChart() {
                   <button className="control-btn" onClick={() => setZoom(1.0)}><RotateCcw size={14} /></button>
                 </div>
               </div>
+              </>
             ) : (
               roots.length > 0 && (
                 <div className="org-tree">
@@ -415,6 +423,12 @@ export default function OrgChart() {
   );
 }
 
+function roleAccent(role?: string | null): string {
+  if (role === "hr_admin") return "role-hr";
+  if (role === "manager") return "role-manager";
+  return "role-employee";
+}
+
 function FlowTreeNodeComponent({ node, expandedNodes, toggleNode, searchQuery, onSelectEmployee, isRoot = false }: { node: TreeNode; expandedNodes: Set<string>; toggleNode: (id: string) => void; searchQuery: string; onSelectEmployee: (emp: Employee) => void; isRoot?: boolean; }) {
   const emp = node.employee;
   const hasChildren = node.children.length > 0;
@@ -425,16 +439,19 @@ function FlowTreeNodeComponent({ node, expandedNodes, toggleNode, searchQuery, o
   const gradients = ["linear-gradient(135deg, #031273 0%, #041890 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #031273 0%, #031273 100%)"];
   const gradient = gradients[Math.abs(hash) % gradients.length];
   const matchesSearch = searchQuery && (emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) || (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase())));
+  const accent = roleAccent((emp as any).role);
   return (
     <div className="flow-node-wrapper">
       <div className={`flow-card-container ${!expanded ? "collapsed" : ""} ${!hasChildren ? "no-children" : ""}`}>
-        <div className={`flow-card ${isRoot ? "flow-card-root" : ""} ${matchesSearch ? "flow-card-highlighted" : ""}`} onClick={() => onSelectEmployee(emp)}>
+        <div className={`flow-card ${accent} ${isRoot ? "flow-card-root" : ""} ${matchesSearch ? "flow-card-highlighted" : ""}`} onClick={() => onSelectEmployee(emp)}>
+          <span className="flow-card-accent-bar" />
           <div className="flow-avatar" style={{ background: gradient }}>{initials}</div>
           <div className="flow-details">
             <span className="flow-name">{emp.full_name}</span>
             <span className="flow-sub">{emp.designation ?? "Employee"}</span>
+            {emp.department && <span className="flow-dept-tag">{emp.department}</span>}
           </div>
-          {hasChildren && <div className="flow-reports-badge" onClick={(e) => { e.stopPropagation(); toggleNode(emp.id); }} style={{ cursor: "pointer" }} title={expanded ? "Collapse team" : "Expand team"}>{node.children.length}</div>}
+          {hasChildren && <div className="flow-reports-badge" onClick={(e) => { e.stopPropagation(); toggleNode(emp.id); }} style={{ cursor: "pointer" }} title={expanded ? "Collapse team" : "Expand team"}>{expanded ? <ChevronDown size={12} /> : node.children.length}</div>}
         </div>
       </div>
       {hasChildren && expanded && (
@@ -458,9 +475,10 @@ function TreeNodeComponent({ node, level, expandedNodes, toggleNode, searchQuery
   const gradients = ["linear-gradient(135deg, #031273 0%, #041890 100%)", "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", "linear-gradient(135deg, #10b981 0%, #059669 100%)", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)", "linear-gradient(135deg, #031273 0%, #031273 100%)"];
   const gradient = gradients[Math.abs(hash) % gradients.length];
   const matchesSearch = searchQuery && (emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || (emp.designation && emp.designation.toLowerCase().includes(searchQuery.toLowerCase())) || (emp.department && emp.department.toLowerCase().includes(searchQuery.toLowerCase())));
+  const accent = roleAccent((emp as any).role);
   return (
     <div className="tree-node">
-      <div className={`tree-card ${level === 0 ? "tree-card-root" : ""} ${matchesSearch ? "tree-card-highlighted" : ""}`} onClick={() => onSelectEmployee(emp)}>
+      <div className={`tree-card ${accent} ${level === 0 ? "tree-card-root" : ""} ${matchesSearch ? "tree-card-highlighted" : ""}`} onClick={() => onSelectEmployee(emp)}>
         <div className="tree-card-left">
           <div className="tree-card-avatar" style={{ background: gradient, color: "#ffffff" }}>{initials}</div>
           <div className="tree-card-info">

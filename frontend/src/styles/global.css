@@ -4798,3 +4798,113 @@ select option {
   background-color: rgba(249, 115, 22, 0.15);
   color: #fb923c;
 }
+
+/* ===================================
+   MISSING DOCUMENTS MODAL
+   =================================== */
+.missing-docs-modal {
+  max-width: 560px;
+}
+
+.missing-docs-modal .modal-body {
+  display: block;
+  text-align: left;
+}
+
+.missing-docs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.missing-docs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--surface);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+}
+
+.missing-docs-row:hover {
+  background: var(--surface-hover);
+  border-color: hsl(var(--primary));
+  transform: translateY(-1px);
+}
+
+.missing-docs-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.missing-docs-row-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.missing-docs-code {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.missing-docs-row-meta {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.missing-docs-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.missing-docs-tag {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: hsl(var(--destructive));
+  background: hsl(var(--destructive) / 0.1);
+  border: 1px solid hsl(var(--destructive) / 0.25);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.missing-docs-row-chevron {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ===================================
+   PAGE LAZY-LOAD FALLBACK
+   =================================== */
+.page-loading-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  width: 100%;
+}
+
+.page-loading-fallback .spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid hsl(var(--border));
+  border-top-color: hsl(var(--primary));
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}

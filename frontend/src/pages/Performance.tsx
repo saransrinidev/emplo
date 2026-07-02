@@ -27,7 +27,7 @@ export default function Performance() {
 // ------- My Performance (all roles) -------
 
 function MyPerformance() {
-  const { data, loading, error } = useApi(() => performanceApi.list());
+  const { data, loading, error } = useApi(() => performanceApi.list(), [], "performance:my");
   const reviews = data ?? [];
 
   return (

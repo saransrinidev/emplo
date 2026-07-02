@@ -35,7 +35,23 @@ export const dashboardApi = {
   employee: () => api.get<EmployeeDashboard>("/dashboard/employee"),
   manager: () => api.get<ManagerDashboard>("/dashboard/manager"),
   hr: () => api.get<HrDashboard>("/dashboard/hr"),
+  missingDocuments: () =>
+    api.get<MissingDocumentsResponse>("/dashboard/missing-documents"),
 };
+
+export interface MissingDocEmployee {
+  id: string;
+  full_name: string;
+  employee_code: string | null;
+  department: string | null;
+  designation: string | null;
+  missing_documents: string[];
+}
+
+export interface MissingDocumentsResponse {
+  total: number;
+  employees: MissingDocEmployee[];
+}
 
 
 export interface DepartmentStat {

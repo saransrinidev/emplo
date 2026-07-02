@@ -29,6 +29,7 @@ import { notificationsApi, type NotificationItem } from "../api/notifications";
 import { certificationsApi, type Certification } from "../api/certifications";
 import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
+import MissingDocumentsModal from "../components/MissingDocumentsModal";
 import { StaggerContainer, StaggerItem, FadeIn, PageTransition } from "../components/Motion";
 import { useApi } from "../hooks/useApi";
 
@@ -40,11 +41,12 @@ interface StatProps {
   description?: string;
   clickable?: boolean;
   to?: string;
+  onClick?: () => void;
   variant?: "indigo" | "green" | "blue" | "amber" | "rose" | "orange" | "pink" | "yellow";
   bgClass?: string;
 }
 
-function Stat({ title, value, icon, subtitle, description, clickable, to, variant = "indigo", bgClass }: StatProps) {
+function Stat({ title, value, icon, subtitle, description, clickable, to, onClick, variant = "indigo", bgClass }: StatProps) {
   const content = (
     <div className={`stat-card-new stat-variant-${variant} ${bgClass || ""} ${clickable ? "stat-card-new-clickable" : ""}`}>
       <div className="stat-icon-wrapper">{icon}</div>
@@ -61,6 +63,14 @@ function Stat({ title, value, icon, subtitle, description, clickable, to, varian
       {clickable && <ChevronRight size={18} className="stat-chevron-new" />}
     </div>
   );
+  if (onClick) {
+    return (
+      <div onClick={onClick} style={{ cursor: "pointer" }} role="button" tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter") onClick(); }}>
+        {content}
+      </div>
+    );
+  }
   if (to) return <Link to={to} style={{ textDecoration: "none" }}>{content}</Link>;
   return content;
 }
@@ -431,6 +441,7 @@ function ManagerDashboard() {
     [],
     "dashboard:manager",
   );
+  const [showMissingDocs, setShowMissingDocs] = useState(false);
   return (
     <AsyncState loading={loading} error={error}>
       {data && (
@@ -441,7 +452,7 @@ function ManagerDashboard() {
               <StaggerItem><Stat title="Team Members" value={String(data.team_members)} icon={<Users />} variant="indigo" bgClass="bg-users" description="Employees reporting to you" /></StaggerItem>
               <StaggerItem><Stat title="Avg Team Rating" value={data.avg_team_rating ?? "—"} icon={<Star />} variant="yellow" bgClass="bg-star" description="Average rating of direct reports" /></StaggerItem>
               <StaggerItem><Stat title="Cert Expiry Alerts" value={String(data.cert_expiry_alerts)} icon={<AlertTriangle />} variant="amber" bgClass="bg-alert" description="Certs expiring in next 90 days" /></StaggerItem>
-              <StaggerItem><Stat title="Missing Documents" value={String(data.missing_documents)} icon={<FileWarning />} variant="rose" bgClass="bg-document" description="Documents requiring attention" /></StaggerItem>
+              <StaggerItem><Stat title="Missing Documents" value={String(data.missing_documents)} icon={<FileWarning />} clickable onClick={() => setShowMissingDocs(true)} variant="rose" bgClass="bg-document" description="Click to view who's missing documents" /></StaggerItem>
               <StaggerItem><Stat title="Work Anniversaries" value={String(data.upcoming_anniversaries)} subtitle="Next 30 days" icon={<Calendar />} variant="blue" bgClass="bg-calendar" description="Upcoming in next 30 days" /></StaggerItem>
             </StaggerContainer>
 
@@ -449,6 +460,7 @@ function ManagerDashboard() {
               <UpcomingReminders />
             </FadeIn>
           </div>
+          {showMissingDocs && <MissingDocumentsModal onClose={() => setShowMissingDocs(false)} />}
         </>
       )}
     </AsyncState>
@@ -462,6 +474,7 @@ function HrDashboard() {
     [],
     "dashboard:hr",
   );
+  const [showMissingDocs, setShowMissingDocs] = useState(false);
   return (
     <AsyncState loading={loading} error={error}>
       {data && (
@@ -472,7 +485,7 @@ function HrDashboard() {
               <StaggerItem><Stat title="Total Employees" value={String(data.total_employees)} icon={<Users />} variant="indigo" bgClass="bg-total-employees" description="All employees in the organization" /></StaggerItem>
               <StaggerItem><Stat title="Active Employees" value={String(data.active_employees)} icon={<UserCheck />} variant="green" bgClass="bg-active-employees" description="Currently active employees" /></StaggerItem>
               <StaggerItem><Stat title="New Joiners" value={String(data.new_joiners)} subtitle="Last 90 days" icon={<UserPlus />} variant="blue" bgClass="bg-new-joiners" description="New employees joined recently" /></StaggerItem>
-              <StaggerItem><Stat title="Missing Documents" value={String(data.employees_missing_documents)} icon={<FileWarning />} variant="rose" bgClass="bg-missing-documents" description="Documents require attention" /></StaggerItem>
+              <StaggerItem><Stat title="Missing Documents" value={String(data.employees_missing_documents)} icon={<FileWarning />} clickable onClick={() => setShowMissingDocs(true)} variant="rose" bgClass="bg-missing-documents" description="Click to view who's missing documents" /></StaggerItem>
               <StaggerItem><Stat title="Expired Certs" value={String(data.expired_certifications)} icon={<ShieldAlert />} variant="rose" bgClass="bg-expired-certs" description="Certificates already expired" /></StaggerItem>
               <StaggerItem><Stat title="Pending Verifications" value={String(data.pending_verifications)} icon={<Clock />} variant="amber" bgClass="bg-pending-verifications" description="Awaiting verification" /></StaggerItem>
               <StaggerItem><Stat title="Certifications Expiring in 30d" value={String(data.certs_expiring_30)} icon={<Timer />} variant="pink" bgClass="bg-certs-30" description="Certificates expiring soon" /></StaggerItem>
@@ -481,6 +494,7 @@ function HrDashboard() {
 
             {/* Recent Activity has been moved to the header welcome banner */}
           </div>
+          {showMissingDocs && <MissingDocumentsModal onClose={() => setShowMissingDocs(false)} />}
         </>
       )}
     </AsyncState>

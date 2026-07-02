@@ -9,7 +9,7 @@ from app.db.session import get_db
 from app.models.certification import Certification
 from app.models.document import Document
 from app.models.employee import Employee
-from app.models.enums import ApprovalStatus, RoleName, VerificationStatus
+from app.models.enums import ApprovalStatus, DocumentType, RoleName, VerificationStatus
 from app.models.performance import PerformanceReview
 from app.models.salary import SalaryRevision
 from app.models.user import User
@@ -176,10 +176,21 @@ def hr_dashboard(
         .where(Employee.date_of_joining.is_not(None), Employee.date_of_joining >= ninety_days_ago)
     ) or 0
 
-    # Missing documents
-    all_ids = set(db.scalars(select(Employee.id)).all())
-    with_docs = set(db.scalars(select(Document.employee_id)).all())
-    missing = len(all_ids - with_docs)
+    # Missing documents — employees missing any required document type
+    required_types = [DocumentType.school, DocumentType.intermediate, DocumentType.degree]
+    all_emp_ids = list(db.scalars(select(Employee.id)).all())
+    present_map: dict = {}
+    if all_emp_ids:
+        rows = db.execute(
+            select(Document.employee_id, Document.document_type)
+        ).all()
+        for eid, dtype in rows:
+            present_map.setdefault(eid, set()).add(dtype)
+    missing = sum(
+        1
+        for eid in all_emp_ids
+        if any(t not in present_map.get(eid, set()) for t in required_types)
+    )
 
     today = date.today()
 
@@ -240,6 +251,74 @@ def hr_dashboard(
         certs_expiring_90=certs_90,
         recent_salary_revisions=recent_revisions,
     )
+
+
+from app.schemas.dashboard import (
+    MissingDocEmployee,
+    MissingDocumentsOut,
+)
+
+# Documents considered mandatory for a complete employee profile
+REQUIRED_DOCUMENT_TYPES = [
+    DocumentType.school,
+    DocumentType.intermediate,
+    DocumentType.degree,
+]
+
+
+def _missing_types_for(present: set) -> list[str]:
+    labels = {
+        DocumentType.school: "School Certificate (10th)",
+        DocumentType.intermediate: "Intermediate Certificate (12th)",
+        DocumentType.degree: "Degree Certificate",
+    }
+    return [labels[t] for t in REQUIRED_DOCUMENT_TYPES if t not in present]
+
+
+@router.get("/missing-documents", response_model=MissingDocumentsOut)
+def missing_documents(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(RoleName.hr_admin, RoleName.manager)),
+) -> MissingDocumentsOut:
+    """List employees who are missing one or more required documents.
+
+    HR sees all employees; a manager sees only their direct reports.
+    """
+    query = select(Employee)
+    if user.role.name == RoleName.manager:
+        query = query.where(Employee.manager_id == user.employee_id)
+
+    employees = list(db.scalars(query).all())
+    emp_ids = [e.id for e in employees]
+
+    # Map employee_id -> set of document_types present
+    present_map: dict = {}
+    if emp_ids:
+        rows = db.execute(
+            select(Document.employee_id, Document.document_type).where(
+                Document.employee_id.in_(emp_ids)
+            )
+        ).all()
+        for eid, dtype in rows:
+            present_map.setdefault(eid, set()).add(dtype)
+
+    results: list[MissingDocEmployee] = []
+    for emp in employees:
+        present = present_map.get(emp.id, set())
+        missing = _missing_types_for(present)
+        if missing:
+            results.append(
+                MissingDocEmployee(
+                    id=str(emp.id),
+                    full_name=emp.full_name,
+                    employee_code=emp.employee_code,
+                    department=emp.department,
+                    designation=emp.designation,
+                    missing_documents=missing,
+                )
+            )
+
+    return MissingDocumentsOut(total=len(results), employees=results)
 
 
 from app.schemas.dashboard import AnalyticsOut, DepartmentStat
