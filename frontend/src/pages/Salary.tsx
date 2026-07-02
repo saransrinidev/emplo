@@ -5,6 +5,7 @@ import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import AsyncState from "../components/AsyncState";
 import EmptyState from "../components/EmptyState";
+import SalaryStructureModal from "../components/SalaryStructureModal";
 import PageHeader from "../components/PageHeader";
 import Skeleton from "../components/Skeleton";
 import { useToast } from "../components/Toast";
@@ -42,6 +43,7 @@ export default function Salary() {
   const current = useApi(() => salaryApi.current());
   const history = useApi(() => salaryApi.history());
   const [showModal, setShowModal] = useState(false);
+  const [showStructure, setShowStructure] = useState(false);
 
   const loading = current.loading || history.loading;
   const error = current.error || history.error;
@@ -68,12 +70,27 @@ export default function Salary() {
       <PageHeader
         title="Compensation"
         subtitle="Salary history and growth timeline."
-        actions={isHr ? (
-          <button className="btn btn-sm" onClick={() => setShowModal(true)}>
-            <Plus size={14} /> New Revision
-          </button>
-        ) : undefined}
+        actions={
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-outline btn-sm" onClick={() => setShowStructure(true)}>
+              View Salary Structure
+            </button>
+            {isHr && (
+              <button className="btn btn-sm" onClick={() => setShowModal(true)}>
+                <Plus size={14} /> New Revision
+              </button>
+            )}
+          </div>
+        }
       />
+
+      {showStructure && (
+        <SalaryStructureModal
+          employeeId="my"
+          employeeName={user?.name}
+          onClose={() => setShowStructure(false)}
+        />
+      )}
 
       {loading && (
         <div className="stack">

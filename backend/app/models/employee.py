@@ -24,6 +24,7 @@ class Employee(Base, UUIDMixin, TimestampMixin):
     date_of_birth: Mapped[date | None] = mapped_column(Date)
     gender: Mapped[str | None] = mapped_column(String(20))
     marital_status: Mapped[str | None] = mapped_column(String(20))
+    profile_photo: Mapped[str | None] = mapped_column(String)  # base64 data URL
 
     # Employment information
     date_of_joining: Mapped[date | None] = mapped_column(Date)

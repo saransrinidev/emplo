@@ -28,3 +28,5 @@ class CurrentUser(BaseModel):
     id: str
     email: EmailStr
     role: RoleName
+    name: str | None = None
+    profile_photo: str | None = None

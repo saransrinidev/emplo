@@ -65,7 +65,12 @@ def add_review(
     if data.get("reviewer_id") and db.get(Employee, data["reviewer_id"]) is None:
         raise HTTPException(status_code=400, detail="Reviewer not found")
     if not data.get("reviewer_id") and user.employee_id:
-        data["reviewer_id"] = user.employee_id
+        # Only auto-assign if the HR's employee record actually exists
+        try:
+            if db.get(Employee, user.employee_id):
+                data["reviewer_id"] = user.employee_id
+        except Exception:
+            pass  # invalid employee_id format, skip auto-assign
 
     review = PerformanceReview(**data)
     db.add(review)
@@ -73,7 +78,7 @@ def add_review(
 
     from app.api.audit_helper import log_action
     log_action(db, actor_id=user.id, action="add_performance_review", entity_type="performance",
-               entity_id=str(review.id), changes={"employee_id": str(payload.employee_id), "rating": data.get("rating")})
+               entity_id=str(review.id), changes={"employee_id": str(payload.employee_id), "rating": str(data.get("rating")) if data.get("rating") else None})
 
     db.commit()
     db.refresh(review)

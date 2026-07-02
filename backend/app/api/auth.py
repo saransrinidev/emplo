@@ -94,5 +94,19 @@ def logout() -> None:
 
 
 @router.get("/me", response_model=CurrentUser)
-def me(user: User = Depends(get_current_user)) -> CurrentUser:
-    return CurrentUser(id=str(user.id), email=user.email, role=user.role.name)
+def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> CurrentUser:
+    name = None
+    profile_photo = None
+    if user.employee_id:
+        from app.models.employee import Employee
+        emp = db.get(Employee, user.employee_id)
+        if emp:
+            name = emp.full_name
+            profile_photo = emp.profile_photo
+    return CurrentUser(
+        id=str(user.id),
+        email=user.email,
+        role=user.role.name,
+        name=name,
+        profile_photo=profile_photo,
+    )

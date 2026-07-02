@@ -164,3 +164,33 @@ def mark_one_read(
         return None
     notif.is_read = True
     db.commit()
+
+
+# --- Delete a single notification ---
+
+@router.delete("/{notification_id}", status_code=204)
+def delete_notification(
+    notification_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    notif = db.get(Notification, notification_id)
+    if notif is None or notif.user_id != user.id:
+        return None
+    db.delete(notif)
+    db.commit()
+
+
+# --- Clear all notifications ---
+
+@router.delete("", status_code=204)
+def clear_all_notifications(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    """Delete all notifications for the current user."""
+    from sqlalchemy import delete as sql_delete
+    db.execute(
+        sql_delete(Notification).where(Notification.user_id == user.id)
+    )
+    db.commit()

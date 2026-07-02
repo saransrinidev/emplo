@@ -167,11 +167,11 @@ def create_ticket(
     db.commit()
     db.refresh(ticket)
 
-    # Notify HR
-    from app.api.notify import notify_hr_only
+    # Notify HR and manager
+    from app.api.notify import notify_hr_and_manager
     emp = db.get(Employee, user.employee_id)
     emp_name = emp.full_name if emp else "An employee"
-    notify_hr_only(
+    notify_hr_and_manager(
         db, user,
         title=f"New Ticket: {ticket.ticket_number}",
         message=f"{emp_name} raised a {payload.ticket_type.value} request: {payload.subject}",
@@ -204,6 +204,35 @@ def my_tickets(
     return [_to_out(t, db) for t in db.scalars(stmt).all()]
 
 
+# ─── Manager: View team tickets ──────────────────────────────────────────────
+
+@router.get("/team", response_model=list[TicketOut])
+def get_team_tickets(
+    status: TicketStatus | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(RoleName.manager, RoleName.hr_admin)),
+) -> list[TicketOut]:
+    """Manager sees tickets from their direct reports. HR sees all."""
+    if not user.employee_id:
+        return []
+    if user.role.name == RoleName.hr_admin:
+        # HR sees all tickets
+        stmt = select(Ticket).order_by(Ticket.created_at.desc())
+        if status:
+            stmt = stmt.where(Ticket.status == status)
+        return [_to_out(t, db) for t in db.scalars(stmt).all()]
+    # Manager: get direct report IDs
+    report_ids = list(db.scalars(
+        select(Employee.id).where(Employee.manager_id == user.employee_id)
+    ).all())
+    if not report_ids:
+        return []
+    stmt = select(Ticket).where(Ticket.employee_id.in_(report_ids)).order_by(Ticket.created_at.desc())
+    if status:
+        stmt = stmt.where(Ticket.status == status)
+    return [_to_out(t, db) for t in db.scalars(stmt).all()]
+
+
 # ─── Employee: View single ticket with comments ──────────────────────────────
 
 @router.get("/{ticket_id}", response_model=TicketOut)
@@ -215,9 +244,14 @@ def get_ticket(
     ticket = db.get(Ticket, ticket_id)
     if ticket is None:
         raise HTTPException(404, "Ticket not found")
-    # Employees can only view their own tickets
+    # Employees can only view their own; Managers can view their team's
     if user.role.name == RoleName.employee and ticket.employee_id != user.employee_id:
         raise HTTPException(403, "Not authorized to view this ticket")
+    if user.role.name == RoleName.manager:
+        # Check if ticket belongs to a direct report
+        emp = db.get(Employee, ticket.employee_id)
+        if emp and emp.manager_id != user.employee_id and ticket.employee_id != user.employee_id:
+            raise HTTPException(403, "Not authorized to view this ticket")
     # Filter out internal comments for non-HR
     out = _to_out(ticket, db, include_comments=True)
     if user.role.name != RoleName.hr_admin:

@@ -24,6 +24,7 @@ backend\.venv\Scripts\python.exe backend\scripts\seed.py
 backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --app-dir backend
 ```
 
+
 To wipe all data and re-seed a fresh HR admin: add `--reset`:
 
 ```bash

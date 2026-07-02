@@ -123,8 +123,13 @@ def add_revision(
         if prev > 0:
             data["revision_percentage"] = round((rev - prev) / prev * 100, 2)
 
-    # Default to pending so it requires approval
-    data["approval_status"] = ApprovalStatus.pending
+    # If this is the first salary (no existing approved revision), auto-approve it
+    # Otherwise it requires approval
+    if latest is None:
+        data["approval_status"] = ApprovalStatus.approved
+        data["comments"] = data.get("comments") or "Initial Salary"
+    else:
+        data["approval_status"] = ApprovalStatus.pending
 
     revision = SalaryRevision(**data, created_by=user.id)
     db.add(revision)

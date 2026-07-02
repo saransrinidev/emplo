@@ -53,6 +53,7 @@ class EmployeeWithRoleOut(BaseModel):
     work_location: str | None = None
     manager_id: str | None = None
     role: str | None = None
+    profile_photo: str | None = None
 
 
 @router.get("/with-roles", response_model=list[EmployeeWithRoleOut])
@@ -86,6 +87,7 @@ def list_employees_with_roles(
             work_location=emp.work_location,
             manager_id=str(emp.manager_id) if emp.manager_id else None,
             role=role_name,
+            profile_photo=emp.profile_photo,
         ))
     return result
 
@@ -170,6 +172,7 @@ class BulkEmployeeItem(BaseModel):
     designation: str | None = None
     employment_status: str | None = None
     work_location: str | None = None
+    initial_salary: str | None = None
 
 
 class BulkImportRequest(BaseModel):
@@ -220,9 +223,33 @@ def bulk_import_employees(
                         errors.append(f"{row_label}: Invalid date format for {date_field}: '{val}' (use YYYY-MM-DD)")
                         emp_data[date_field] = None
 
+            # Extract and remove initial_salary before creating employee
+            salary_str = emp_data.pop("initial_salary", None)
+
             employee = Employee(**emp_data)
             db.add(employee)
             db.flush()
+
+            # Create initial salary revision if provided
+            if salary_str:
+                try:
+                    salary_amount = float(salary_str)
+                    if salary_amount > 0:
+                        from app.models.salary import SalaryRevision
+                        from app.models.enums import ApprovalStatus
+                        revision = SalaryRevision(
+                            employee_id=employee.id,
+                            effective_date=emp_data.get("date_of_joining") or date_type.today(),
+                            previous_salary=None,
+                            revised_salary=salary_amount,
+                            revision_percentage=None,
+                            comments="Initial Salary",
+                            approval_status=ApprovalStatus.approved,
+                        )
+                        db.add(revision)
+                except (ValueError, TypeError):
+                    pass  # ignore invalid salary values silently
+
             created += 1
         except Exception as e:
             errors.append(f"{row_label}: {str(e)}")
@@ -313,6 +340,69 @@ def create_login_for_employee(
     )
 
 
+# --- Bulk create login accounts (HR only) ---
+
+class BulkCreateLoginRequest(BaseModel):
+    employee_ids: list[uuid.UUID]
+    password: str
+    role: RoleName = RoleName.employee
+
+
+class BulkCreateLoginResult(BaseModel):
+    total: int
+    created: int
+    errors: list[str]
+
+
+@router.post("/bulk-create-login", response_model=BulkCreateLoginResult, status_code=201)
+def bulk_create_logins(
+    payload: BulkCreateLoginRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RoleName.hr_admin)),
+) -> BulkCreateLoginResult:
+    """Create login accounts for multiple employees at once with the same role and password."""
+    if len(payload.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+
+    role = db.scalar(select(Role).where(Role.name == payload.role))
+    if role is None:
+        raise HTTPException(400, "Role not found")
+
+    created = 0
+    errors: list[str] = []
+
+    for emp_id in payload.employee_ids:
+        employee = db.get(Employee, emp_id)
+        if not employee:
+            errors.append(f"{emp_id}: Employee not found")
+            continue
+
+        # Check if already has login
+        existing = db.scalar(select(User).where(User.employee_id == emp_id))
+        if existing:
+            errors.append(f"{employee.full_name}: Already has a login account")
+            continue
+
+        # Check email not taken
+        email_taken = db.scalar(select(User).where(User.email == employee.email))
+        if email_taken:
+            errors.append(f"{employee.full_name}: Email already in use by another account")
+            continue
+
+        user = User(
+            email=employee.email,
+            password_hash=hash_password(payload.password),
+            role_id=role.id,
+            employee_id=employee.id,
+        )
+        db.add(user)
+        db.flush()
+        created += 1
+
+    db.commit()
+    return BulkCreateLoginResult(total=len(payload.employee_ids), created=created, errors=errors)
+
+
 # --- Terminate (delete) an employee (HR only) ---
 
 @router.delete("/{employee_id}", status_code=204)
@@ -330,11 +420,39 @@ def delete_employee(
     log_action(db, actor_id=user.id, action="terminate", entity_type="employee",
                entity_id=str(employee.id), changes={"full_name": employee.full_name, "email": employee.email})
 
-    # Delete linked user account if exists
+    from sqlalchemy import update, text
+
+    # 1. Nullify other employees reporting to this one
+    db.execute(update(Employee).where(Employee.manager_id == employee.id).values(manager_id=None))
+
+    # 2. Nullify leave_requests.manager_id and performance_reviews.reviewer_id
+    db.execute(text("UPDATE leave_requests SET manager_id = NULL WHERE manager_id = :eid"), {"eid": str(employee.id)})
+    db.execute(text("UPDATE performance_reviews SET reviewer_id = NULL WHERE reviewer_id = :eid"), {"eid": str(employee.id)})
+
+    # 3. Delete linked user account and clean up all user FK references
     linked_user = db.scalar(select(User).where(User.employee_id == employee.id))
     if linked_user:
+        uid = str(linked_user.id)
+        # Nullify all FK references to this user across the system
+        from app.models.salary import SalaryRevision
+        from app.models.audit_log import AuditLog
+        db.execute(update(SalaryRevision).where(SalaryRevision.created_by == linked_user.id).values(created_by=None))
+        db.execute(update(AuditLog).where(AuditLog.actor_id == linked_user.id).values(actor_id=None))
+        db.execute(text("UPDATE edit_access_requests SET approved_by = NULL WHERE approved_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE edit_access_requests SET confirmed_by = NULL WHERE confirmed_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE employee_edit_permissions SET granted_by = NULL WHERE granted_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE documents SET verified_by = NULL WHERE verified_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE tickets SET assigned_to = NULL WHERE assigned_to = :uid"), {"uid": uid})
+        db.execute(text("UPDATE tickets SET resolved_by = NULL WHERE resolved_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE profile_change_requests SET reviewed_by = NULL WHERE reviewed_by = :uid"), {"uid": uid})
+        db.execute(text("UPDATE leave_requests SET hr_id = NULL WHERE hr_id = :uid"), {"uid": uid})
+        # Delete owned records that won't cascade
+        db.execute(text("DELETE FROM notifications WHERE user_id = :uid"), {"uid": uid})
+        db.execute(text("DELETE FROM ticket_comments WHERE user_id = :uid"), {"uid": uid})
         db.delete(linked_user)
+        db.flush()
 
+    # 4. Delete the employee (cascades to addresses, contacts, docs, certs, leave_requests, etc.)
     db.delete(employee)
     db.commit()
 
